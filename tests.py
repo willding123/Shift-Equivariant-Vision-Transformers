@@ -53,7 +53,7 @@ class TestShift(unittest.TestCase):
         y = y.cpu().detach().numpy()
         y1 = self.model(x1).cpu().detach().numpy()
         np.save("original.npy", y)
-        np.save("shifted.npy", 1)
+        np.save("shifted.npy", y1)
 
 
         # print(y.shape)
