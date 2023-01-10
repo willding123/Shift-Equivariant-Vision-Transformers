@@ -48,7 +48,7 @@ class TestShift(unittest.TestCase):
 
     def show_features(self): 
         x = torch.rand((4,3,224,224)).cuda()
-        x1 = torch.roll(x, (1,1), (2,3)).cuda()
+        x1 = torch.roll(x, tuple(np.random.randint(0,32,2)), (2,3)).cuda()
         y = self.model(x)
         y = y.cpu().detach().numpy()
         y1 = self.model(x1).cpu().detach().numpy()
