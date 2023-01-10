@@ -15,48 +15,78 @@ import torch.optim as optim
 from torch.nn.parallel import DistributedDataParallel as DDP
 
 # from models.swin_transformer_poly import poly_order
-from models.swin_transformer_poly import WindowAttention
-from models.swin_transformer_poly import PolySwin
-from models.swin_transformer_poly import PolyOrder
+from models.swin_transformer_poly import *
 from models.swin_transformer import SwinTransformer, SwinTransformerBlock
 from torchvision.transforms.functional import affine
 from torch.profiler import profile, record_function, ProfilerActivity
 
 
 class TestShift(unittest.TestCase):
-    def test_model(self): 
-        x = torch.rand((1,3,224,224)).cuda()
+    def setUp(self):
+        img_size = (224, 224)
+        patch_size = 7
+        in_chans = 3
+        norm_layer = nn.LayerNorm
+        patches_resolution = (32,32)
+        drop_rate = 0.1 
+        embed_dim = 96
+        self.model = nn.Sequential(
+            PolyPatch(input_resolution = img_size, patch_size = patch_size, in_chans = in_chans, out_chans = embed_dim, norm_layer=norm_layer),
+            nn.Dropout(p=drop_rate),
+            BasicLayer(dim=int(96),
+                               input_resolution=(patches_resolution[0] ,
+                                                 patches_resolution[1]),
+                               depth=2,
+                               num_heads=3,
+                               window_size=7,
+                               norm_layer=norm_layer,
+                               downsample=PolyPatch
+        )
+        )
+        self.model.cuda()
+
+    def show_features(self): 
+        x = torch.rand((4,3,224,224)).cuda()
         x1 = torch.roll(x, (1,1), (2,3)).cuda()
-        label = torch.tensor((1,1,0,0)).cuda()
-        model = SwinTransformerBlock(3, (224,224), 1, qk_scale=1).cuda()
-        model1 = PolySwin(img_size=(224,224)).cuda()
-        criterion = torch.nn.CrossEntropyLoss()
+        print("hello")
+        print(self.model(x))
+        print(self.model(x1))
 
-        for i in range(1):
-            s1 = torch.randint(5, (1,)); s2 = torch.randint(5, (1,)); 
-            x1 = torch.roll(x, (s1,s2), (2,3))
-            x = torch.permute(x, (0,2,3,1)).view(4,-1,3).contiguous()
-            x1 = torch.permute(x1, (0,2,3,1)).view(4,-1,3).contiguous()
-            model(x)
-            model(x1)
-            # loss = criterion(output, label)
-            # loss1 = criterion(output1, label)
-            # assertAlmostEqual(loss, loss1, 5)
 
-            # print(output)
-            # print(output1)
-            # print(torch.linalg.norm(output-output1))
-            # print(f"loss: {loss}, loss1: {loss1}")
+    # def test_model(self): 
+    #     x = torch.rand((4,3,224,224)).cuda()
+    #     x1 = torch.roll(x, (1,1), (2,3)).cuda()
+    #     label = torch.tensor((1,1,0,0)).cuda()
+    #     # model = SwinTransformer(3, (224,224), 1, qk_scale=1).cuda()
+    #     model1 = PolySwin(img_size=(224,224)).cuda()
+    #     criterion = torch.nn.CrossEntropyLoss()
+    #     print(model(x))
+    #     print(model1(x1))
+    #     torch.save(model(x), "tensor.pt")
+    #     torch.save(model1(x), "tensor1.pt")
+
+    #     # for i in range(1):
+    #     #     s1 = torch.randint(5, (1,)); s2 = torch.randint(5, (1,)); 
+    #     #     x1 = torch.roll(x, (s1,s2), (2,3))
             
-        # output1 = model(x1)
-        # loss = criterion(output, label)
-        # loss1 = criterion(output1, label)
-        # loss.backward()
-        # loss1.backward()
+    #         # loss = criterion(output, label)
+    #         # loss1 = criterion(output1, label)
+    #         # assertAlmostEqual(loss, loss1, 5)
 
-        # print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
-        # print(loss)
-        # print(loss1)
+    #         # print(output)
+    #         # print(output1)
+    #         # print(torch.linalg.norm(output-output1))
+    #         # print(f"loss: {loss}, loss1: {loss1}")
+            
+    #     # output1 = model(x1)
+    #     # loss = criterion(output, label)
+    #     # loss1 = criterion(output1, label)
+    #     # loss.backward()
+    #     # loss1.backward()
+
+    #     # print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
+    #     # print(loss)
+    #     # print(loss1)
 
     # def test_polyorder(self):
     #     x = torch.rand(128).cuda()
@@ -89,7 +119,10 @@ class TestShift(unittest.TestCase):
     #     print(model(xr))
 
 if __name__ == "__main__":
-    unittest.main()
+    test = TestShift()
+    test.setUp()
+    test.show_features()
+    # unittest.main()
 
 
 
