@@ -638,7 +638,6 @@ class PolySwin(nn.Module):
 
         x = self.norm(x)  # B L C
         x = self.avgpool(x.transpose(1, 2))  # B C 1
-        print(x)
         x = torch.flatten(x, 1)
         return x
 
