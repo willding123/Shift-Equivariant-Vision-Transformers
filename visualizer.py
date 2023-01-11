@@ -12,14 +12,6 @@ y1 = np.load("shifted.npy")
 z = np.load("swin.npy")
 z1 = np.load("swin1.npy")
 
-def find_similar(anchor:np.array, y_search:np.array, threshold:float):
-    ''' Find matching of anchor in y_search matrix
-    '''
-    matches = []
-    for i in range(y_search.shape[1]):
-        if np.linalg.norm(anchor - y_search[0][i]) < threshold:
-            matches.append(i)
-    return matches
 #%% 
 plt.imshow(y[0][0:196])
 plt.show()
@@ -63,43 +55,84 @@ plt.show()
 
 
 
-for i in tqdm(range(y.shape[1])):
-    anchor = y[0][i]
-    matches = find_similar(anchor, y1, 0.1)
-    if matches:
-        print(i, matches)
+# # Find binary thresholded match
+# y_mean = np.mean(y)
+# y1_mean = np.mean(y1)
+# y_binary =  np.where(y > y_mean, 255, 0)
+# y1_binary = np.where(y1 > y1_mean, 255, 0)
 
-
-# Find binary thresholded match
-y_mean = np.mean(y)
-y1_mean = np.mean(y1)
-y_binary =  np.where(y > y_mean, 255, 0)
-y1_binary = np.where(y1 > y1_mean, 255, 0)
-
-for i in tqdm(range(y.shape[1])):
-    anchor = y_binary[0][i]
-    if find_similar(anchor, y1_binary, 0.1):
-        print(i)
+# for i in tqdm(range(y.shape[1])):
+#     anchor = y_binary[0][i]
+#     if find_similar(anchor, y1_binary, 0.1):
+#         print("found a match")
+#         break
+        
 
 
 # %%
-for i in tqdm(range(z.shape[1])):
-    anchor = z[0][i]
-    matches = find_similar(anchor, z1, 0.1)
-    if matches:
-        print(i, matches)
 
 
-# Find binary thresholded match
-z_mean = np.mean(z)
-z1_mean = np.mean(z1)
-z_binary =  np.where(z > y_mean, 255, 0)
-z1_binary = np.where(z1 > y1_mean, 255, 0)
+def find_similar(anchor:np.array, y_search:np.array, threshold:float):
+    ''' Find matching of anchor in y_search matrix
+    '''
+    matches = []
+    for i in range(y_search.shape[0]):
+        if np.linalg.norm(anchor - y_search[i]) < threshold:
+            matches.append(i)
+    return matches
 
-for i in tqdm(range(z.shape[1])):
-    anchor = z_binary[0][i]
-    if find_similar(anchor, z1_binary, 0.1):
-        print(i)
+def find_shift(y, y1, early_break = False):
+    shift_candidates = []
+    for i in tqdm(range(y.shape[0])):
+        anchor = y[i]
+        matches = find_similar(anchor, y1, 0.1)
+        if matches:
+            assert len(matches) == 1
+            if early_break:
+                return i-matches[0]
+            if shift_candidates and i-matches[0] != shift_candidates[0]:
+                print("Warning: multiple shift candidates")
+                print(shift_candidates)
+                print(i-matches[0])
+            shift_candidates.append(i-matches[0])
+
+    assert len(shift_candidates) > 0
+    shift_size = shift_candidates[0]
+    return shift_size
+
+def shift_and_compare(y, y1, shift_size):
+
+    y1_shifted = np.roll(y1, shift_size, axis=0)
+    dist = np.linalg.norm(y1_shifted - y)
+    return dist
+# %%
+def compare_tokens(y, y1):
+    num_matches = 0
+    num_total = 0
+    for i in tqdm(range(y.shape[0])):
+        y_token = y[i]
+        y1_token = y1[i]
+        if np.linalg.norm(y_token - y1_token) < 0.001:
+            num_matches += 1
+        num_total += 1
+    
+    return num_matches, num_total, num_matches/num_total
+# %%
+
+for img_id in range(y.shape[0]):
+    print(f"Image {img_id}")
+    y1_img = y1[img_id]
+    y_img = y[img_id]
+
+    shift_size = find_shift(y_img, y1_img, early_break=True)
+    dist = shift_and_compare(y_img, y1_img, shift_size)
+    print(shift_size)
+    print(dist)
+    dist_orig = np.linalg.norm(y1_img - y_img)
+    print(dist_orig)
+
+
+
 
 
 # %%
