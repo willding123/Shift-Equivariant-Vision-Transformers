@@ -74,7 +74,7 @@ class TestShift(unittest.TestCase):
     def show_features(self): 
         x = torch.rand((4,3,224,224)).cuda()
         # shifts = tuple(np.random.randint(0,32,2))
-        shifts = (37,43)
+        shifts = (37,0)
         x1 = torch.roll(x, shifts, (2,3)).cuda()
         print(shifts)
         # poly swin output 

@@ -119,17 +119,17 @@ def compare_tokens(y, y1):
     return num_matches, num_total, num_matches/num_total
 # %%
 
-for img_id in range(y.shape[0]):
+for img_id in [1,2]:
     print(f"Image {img_id}")
     y1_img = y1[img_id]
     y_img = y[img_id]
 
-    shift_size = find_shift(y_img, y1_img, early_break=True)
+    shift_size = find_shift(y_img, y1_img, early_break=False)
     dist = shift_and_compare(y_img, y1_img, shift_size)
-    print(shift_size)
-    print(dist)
+    print(f"shift size: {shift_size}")
+    print(f"Distance using poly: {dist}")
     dist_orig = np.linalg.norm(y1_img - y_img)
-    print(dist_orig)
+    print(f"Distance w.o: {dist_orig}")
 
 
 
