@@ -1,6 +1,9 @@
 #%%
 import numpy as np 
 import matplotlib.pyplot as plt
+from tqdm import tqdm
+#%%
+
 np.random.seed(123)
 
 y = np.load("original.npy")
@@ -41,5 +44,37 @@ plt.show()
 # TODO check original swin behavior as well 
 # check content of each token and compare 
 
+        
 # %%
 
+
+# %%
+def find_similar(anchor:np.array, y_search:np.array, threshold:float):
+    ''' Find matching of anchor in y_search matrix
+    '''
+    matches = []
+    for i in range(y_search.shape[1]):
+        if np.linalg.norm(anchor - y_search[0][i]) < threshold:
+            matches.append(i)
+    return matches
+
+for i in tqdm(range(3136)):
+    anchor = y[0][i]
+    if find_similar(anchor, y1, 0.1):
+        print(i)
+
+# Find binary thresholded match
+y_mean = np.mean(y)
+y1_mean = np.mean(y1)
+y_binary =  np.where(y > y_mean, 255, 0)
+y1_binary = np.where(y1 > y1_mean, 255, 0)
+
+for i in tqdm(range(3136)):
+    anchor = y_binary[0][i]
+    if find_similar(anchor, y1_binary, 0.1):
+        print(i)
+
+
+# %%
+
+# %%
