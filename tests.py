@@ -23,8 +23,8 @@ from torch.profiler import profile, record_function, ProfilerActivity
 
 import matplotlib.pyplot as plt 
 
-np.random.seed(123)
-torch.random.manual_seed(123)
+np.random.seed(111)
+torch.random.manual_seed(111)
 class TestShift(unittest.TestCase):
     def setUp(self):
         img_size = (224, 224)
@@ -36,42 +36,45 @@ class TestShift(unittest.TestCase):
         embed_dim = 96
         dim = 96
         # poly swin transformer block 
-        self.model = nn.Sequential(
-            PolyPatch(input_resolution = img_size, patch_size = patch_size, in_chans = in_chans, out_chans = embed_dim, norm_layer=norm_layer),
-            nn.Dropout(p=drop_rate),
-            BasicLayer(dim=dim,
-                               input_resolution=(patches_resolution[0],
-                                                 patches_resolution[1]),
-                               depth=2,
-                               num_heads=3,
-                               window_size=7,
-                               norm_layer=norm_layer,
-                               downsample=PolyPatch
-        )
-        )
+        # self.model = nn.Sequential(
+            # PolyPatch(input_resolution = img_size, patch_size = patch_size, in_chans = in_chans, out_chans = embed_dim, norm_layer=norm_layer)
+            # nn.Dropout(p=drop_rate),
+            # BasicLayer(dim=dim,
+            #                    input_resolution=(patches_resolution[0],
+            #                                      patches_resolution[1]),
+            #                    depth=2,
+            #                    num_heads=3,
+            #                    window_size=7,
+            #                    norm_layer=norm_layer,
+            #                    downsample=PolyPatch
+        # )
+        # )
+        self.model = PolyPatch(input_resolution = img_size, patch_size = patch_size, in_chans = in_chans, out_chans = embed_dim, norm_layer=norm_layer)
         self.model.cuda()
         # swin transformer block 
-        self.model1 = nn.Sequential(
-            PatchEmbed(
-            img_size=img_size, patch_size=patch_size, in_chans=in_chans, embed_dim=embed_dim,
-            norm_layer=norm_layer),
-            nn.Dropout(p=drop_rate),
-            BasicLayer(dim=int(96),
-                               input_resolution=(patches_resolution[0],
-                                                 patches_resolution[1]),
-                               depth=2,
-                               num_heads=3,
-                               window_size=7,
-                               norm_layer=norm_layer,
-                               downsample=PatchMerging
-            )
+        # self.model1 = nn.Sequential(
+        #     PatchEmbed(
+        #     img_size=img_size, patch_size=patch_size, in_chans=in_chans, embed_dim=embed_dim,
+        #     norm_layer=norm_layer),
+        #     nn.Dropout(p=drop_rate),
+        #     BasicLayer(dim=int(96),
+        #                        input_resolution=(patches_resolution[0],
+        #                                          patches_resolution[1]),
+        #                        depth=2,
+        #                        num_heads=3,
+        #                        window_size=7,
+        #                        norm_layer=norm_layer,
+        #                        downsample=PatchMerging
+        #     )
 
-        )
+        # )
+        self.model1 = PatchEmbed(img_size=img_size, patch_size=patch_size, in_chans=in_chans, embed_dim=embed_dim,norm_layer=norm_layer)
         self.model1.cuda()
 
     def show_features(self): 
         x = torch.rand((4,3,224,224)).cuda()
-        shifts = tuple(np.random.randint(0,32,2))
+        # shifts = tuple(np.random.randint(0,32,2))
+        shifts = (37,43)
         x1 = torch.roll(x, shifts, (2,3)).cuda()
         print(shifts)
         # poly swin output 
