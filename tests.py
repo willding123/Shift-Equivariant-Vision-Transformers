@@ -95,6 +95,7 @@ class TestShift(unittest.TestCase):
         # self.model(x1[0])
 
 
+
     # def test_model(self): 
     #     x = torch.rand((4,3,224,224)).cuda()
     #     x1 = torch.roll(x, (1,1), (2,3)).cuda()
@@ -130,15 +131,13 @@ class TestShift(unittest.TestCase):
     #     # print(loss)
     #     # print(loss1)
 
-    # def test_polyorder(self):
-    #     x = torch.rand(128).cuda()
-    #     x = x.view(2,1, 8,8)
-    #     x[0,:,1::4, 0::4] = 1 
-    #     x[1,:,2::4, 2::4] = 1
-    #     print(x)
-    #     patch_size = (2,2); grid_size = (4,4)
-    #     x = PolyOrder.apply(x, grid_size, patch_size)
-    #     print(x)
+    def test_polyorder(self):
+        x = torch.ones((2,1,224,224)).cuda()
+        x[0,:, 1::7,0::7 ]  = 2
+        x[1,:, 0::7,0::7 ]  = 2
+        patch_size = (7,7); grid_size = (32,32)
+        x = PolyOrder.apply(x, grid_size, patch_size)
+        print(x)
 
     # def test_window_atten(self): 
     #     x = torch.rand(64)
@@ -162,8 +161,7 @@ class TestShift(unittest.TestCase):
 
 if __name__ == "__main__":
     test = TestShift()
-    test.setUp()
-    test.show_features()
+    test.test_polyorder()
     # unittest.main()
 
 
