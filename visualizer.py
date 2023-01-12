@@ -90,14 +90,15 @@ def find_shift(y, y1, early_break = False):
             assert len(matches) == 1
             if early_break:
                 return i-matches[0]
-            if shift_candidates and i-matches[0] != shift_candidates[0]:
+            shift_dist = i-matches[0]
+            if shift_candidates and shift_dist != shift_candidates[0]:
                 print("Warning: multiple shift candidates")
-                print(shift_candidates)
-                print(i-matches[0])
-                shift_candidates.append(i-matches[0])
+                print(f"Found shift candidate: {shift_dist}")
+                print(f"Previous shift candidate: {shift_candidates[0]}")
+                shift_candidates.append(shift_dist)
             elif not shift_candidates:
-                shift_candidates.append(i-matches[0])
-                print(f"Found shift candidate: {i-matches[0]}")
+                shift_candidates.append(shift_dist)
+                print(f"Found shift candidate: {shift_dist}")
 
     assert len(shift_candidates) > 0
     shift_size = shift_candidates[0]
