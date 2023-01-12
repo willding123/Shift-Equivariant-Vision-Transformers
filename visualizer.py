@@ -91,6 +91,8 @@ def find_shift(y, y1, early_break = False):
             if early_break:
                 return i-matches[0]
             shift_dist = i-matches[0]
+            if shift_dist < 0:
+                shift_dist = y.shape[0] + shift_dist # account for wrapping index
             if shift_candidates and shift_dist != shift_candidates[0]:
                 print("Warning: multiple shift candidates")
                 print(f"Found shift candidate: {shift_dist}")
