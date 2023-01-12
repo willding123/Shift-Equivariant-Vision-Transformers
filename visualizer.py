@@ -94,7 +94,10 @@ def find_shift(y, y1, early_break = False):
                 print("Warning: multiple shift candidates")
                 print(shift_candidates)
                 print(i-matches[0])
-            shift_candidates.append(i-matches[0])
+                shift_candidates.append(i-matches[0])
+            elif not shift_candidates:
+                shift_candidates.append(i-matches[0])
+                print(f"Found shift candidate: {i-matches[0]}")
 
     assert len(shift_candidates) > 0
     shift_size = shift_candidates[0]
