@@ -118,28 +118,46 @@ def compare_tokens(y, y1):
     for i in tqdm(range(y.shape[0])):
         y_token = y[i]
         y1_token = y1[i]
-        if np.linalg.norm(y_token - y1_token) < 0.001:
+        if np.linalg.norm(y_token - y1_token) < 0.01:
             num_matches += 1
         num_total += 1
     
     return num_matches, num_total, num_matches/num_total
 # %%
 
-for img_id in [1,2]:
+for img_id in range(y.shape[0]):
+
     # image 1 cannot find a candidate
     print(f"Image {img_id}")
-    y1_img = y1[img_id]
-    y_img = y[img_id]
+    try:
+        y1_img = y1[img_id]
+        y_img = y[img_id]
 
-    shift_size = find_shift(y_img, y1_img, early_break=False)
-    dist = shift_and_compare(y_img, y1_img, shift_size)
-    print(f"shift size: {shift_size}")
-    print(f"Distance using poly: {dist}")
-    dist_orig = np.linalg.norm(y1_img - y_img)
-    print(f"Distance w.o: {dist_orig}")
+        shift_size = find_shift(y_img, y1_img, early_break=False)
+        dist = shift_and_compare(y_img, y1_img, shift_size)
+        print(f"shift size: {shift_size}")
+        print(f"Distance using poly: {dist}")
+        dist_orig = np.linalg.norm(y1_img - y_img)
+        print(f"Distance w.o: {dist_orig}")
+    except:
+        print(f"Failed for image {img_id}")
 
 
 
+
+
+# %%
+
+# Testing code
+
+test_1 = np.random.rand(1024, 96)
+test_2 = test_1 + np.random.normal(0, 0.00001, test_1.shape)
+test_3 =  np.roll(test_1, -5, axis=0)
+perm_idxs = np.random.permutation(test_1.shape[0])
+test_2 = test_2[perm_idxs]
+find_shift(test_1, test_2, early_break=False)
+
+find_shift(test_1, test_3, early_break=False)
 
 
 # %%
