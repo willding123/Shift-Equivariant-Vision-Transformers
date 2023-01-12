@@ -120,6 +120,7 @@ def compare_tokens(y, y1):
 # %%
 
 for img_id in [1,2]:
+    # image 1 cannot find a candidate
     print(f"Image {img_id}")
     y1_img = y1[img_id]
     y_img = y[img_id]

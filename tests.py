@@ -28,10 +28,10 @@ torch.random.manual_seed(111)
 class TestShift(unittest.TestCase):
     def setUp(self):
         img_size = (224, 224)
-        patch_size = 2
+        patch_size = 7
         in_chans = 3
         norm_layer = nn.LayerNorm
-        patches_resolution = (112,112)
+        patches_resolution = (32,32)
         drop_rate = 0.1 
         embed_dim = 96
         dim = 96
