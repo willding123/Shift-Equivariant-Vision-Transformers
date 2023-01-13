@@ -6,6 +6,7 @@ import random
 import argparse
 import datetime
 import numpy as np
+import traceback
 
 import torch
 import torch.backends.cudnn as cudnn
@@ -20,8 +21,9 @@ from models.swin_transformer_poly import *
 from models.swin_transformer import SwinTransformer, SwinTransformerBlock
 from torchvision.transforms.functional import affine
 from torch.profiler import profile, record_function, ProfilerActivity
-
 import matplotlib.pyplot as plt 
+from utils import * 
+
 
 np.random.seed(111)
 torch.random.manual_seed(111)
@@ -49,8 +51,8 @@ class TestShift(unittest.TestCase):
             #                    downsample=PolyPatch
         # )
         # )
+        print("polypatch")
         self.model = PolyPatch(input_resolution = img_size, patch_size = patch_size, in_chans = in_chans, out_chans = embed_dim, norm_layer=norm_layer)
-        self.model.cuda()
         # swin transformer block 
         # self.model1 = nn.Sequential(
         #     PatchEmbed(
@@ -68,31 +70,41 @@ class TestShift(unittest.TestCase):
         #     )
 
         # )
+        print("patch embed")
         self.model1 = PatchEmbed(img_size=img_size, patch_size=patch_size, in_chans=in_chans, embed_dim=embed_dim,norm_layer=norm_layer)
-        self.model1.cuda()
+        print("move to gpu")
+        self.model = self.model.cuda()
+        self.model1 = self.model1.cuda()
+
 
     def show_features(self): 
+        print("starts...")
         x = torch.rand((4,3,224,224)).cuda()
         # shifts = tuple(np.random.randint(0,32,2))
-        shifts = (37,0)
+        shifts = (37,43)
         x1 = torch.roll(x, shifts, (2,3)).cuda()
-        print(shifts)
         # poly swin output 
-        y = self.model(x)
-        y = y.cpu().detach().numpy()
+        print("prediction")
+        y = self.model(x).cpu().detach().numpy()
         y1 = self.model(x1).cpu().detach().numpy()
         # swin output 
         z = self.model1(x).cpu().detach().numpy()
         z1 = self.model1(x1).cpu().detach().numpy()
+        print("starts for loop")
+        for img_id in range(y.shape[0]):
+            print(f"Image {img_id}")
+            try:
+                y1_img = y1[img_id]
+                y_img = y[img_id]
+                shift_size = find_shift(y_img, y1_img, early_break=False)
+                dist = shift_and_compare(y_img, y1_img, shift_size)
+                print(f"shift size: {shift_size}")
+                print(f"Distance using poly: {dist}")
+                dist_orig = np.linalg.norm(y1_img - y_img)
+                print(f"Distance w.o: {dist_orig}")
+            except:
+                print(f"Failed for image {img_id}")
 
-        np.save("original.npy", y)
-        np.save("shifted.npy", y1)
-        np.save("swin.npy", z)
-        np.save("swin1.npy", z1)
-
-
-        # print(y.shape)
-        # self.model(x1[0])
 
 
 
@@ -132,12 +144,20 @@ class TestShift(unittest.TestCase):
     #     # print(loss1)
 
     def test_polyorder(self):
-        x = torch.ones((2,1,224,224)).cuda()
-        x[0,:, 1::7,0::7 ]  = 2
-        x[1,:, 0::7,0::7 ]  = 2
-        patch_size = (7,7); grid_size = (32,32)
-        x = PolyOrder.apply(x, grid_size, patch_size)
-        print(x)
+        patch_sizes = [(2,2), (4,4), (7,7), (8,8), (14,14)]
+        patches_resolutions = [(int(224/x[0]),int(224/x[1])) for x in patch_sizes]
+        # initial setup: for each patch size experiment
+        # we set first polyphase of each image to highest energy, roll each image randomly 
+        for i in range(len(patch_sizes)):
+            x = torch.rand((4,3,224,224))
+            for j in range(x.shape[0]):
+                x[j, :, 0::patches_resolutions[i][0], 0::patches_resolutions[i][1]] = 2 
+                x = np.roll(x, tuple(np.random.randint(0,patches_resolutions[i], 2)), axis = (2,3))
+            x = torch.tensor(x)
+            y = PolyOrder.apply(x, patches_resolutions[i], patch_sizes[i], 2, False)
+            assert torch.all(y[:,:,0::patches_resolutions[i][0], 0::patches_resolutions[i][1]]==2).item()
+        
+        
 
     # def test_window_atten(self): 
     #     x = torch.rand(64)
@@ -161,7 +181,15 @@ class TestShift(unittest.TestCase):
 
 if __name__ == "__main__":
     test = TestShift()
-    test.test_polyorder()
+    start = time.time()
+    try: 
+        test.setUp()
+        test.show_features()
+    except:
+        traceback.print_exc()
+    finally: 
+        end = time.time() - start 
+        print(f"Time elapsed: {end}")
     # unittest.main()
 
 

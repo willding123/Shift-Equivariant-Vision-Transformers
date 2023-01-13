@@ -35,9 +35,10 @@ class PolyOrder1d(torch.autograd.Function):
  
 class PolyOrder(torch.autograd.Function):
     @staticmethod
-    def forward (ctx, x, grid_size, patch_size, norm =2 ):
+    def forward (ctx, x, grid_size, patch_size, norm =2, use_gpu = True):
+        device = "cuda" if use_gpu else "cpu"
         B, C, H, W = x.shape
-        tmp = x.detach().clone()
+        tmp = x.clone()
         tmp = tmp.view(B,C,patch_size[0], grid_size[0], patch_size[0], grid_size[1] )
         tmp = torch.permute(tmp, (0,1,2, 4,3,5))
         tmp = torch.permute(tmp.reshape(B,C, patch_size[0]**2, grid_size[0]**2), (0,1,3,2))
@@ -51,7 +52,7 @@ class PolyOrder(torch.autograd.Function):
         norm = torch.linalg.vector_norm(tmp, dim=(2,3))
         del tmp
         idx = torch.argmax(norm, dim=1).int()
-        theta = torch.zeros((B,2,3), requires_grad=False).cuda().float()
+        theta = torch.zeros((B,2,3), requires_grad=False).to(device).float()
         theta[:,0, 0] = 1; theta[:,1,1] = 1;
         l = grid_size[0]-1
         x = pad(x, (0,l,0,l) ,"circular").float()

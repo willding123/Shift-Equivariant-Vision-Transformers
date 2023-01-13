@@ -9,7 +9,60 @@ import os
 import torch
 import torch.distributed as dist
 from torch._six import inf
+import numpy as np 
+from tqdm import tqdm
 
+def find_similar(anchor:np.array, y_search:np.array, threshold:float):
+    ''' Find matching of anchor in y_search matrix
+    '''
+    matches = []
+    for i in range(y_search.shape[0]):
+        if np.linalg.norm(anchor - y_search[i]) < threshold:
+            matches.append(i)
+    return matches
+
+def find_shift(y, y1, early_break = False):
+    shift_candidates = []
+    for i in tqdm(range(y.shape[0])):
+        anchor = y[i]
+        matches = find_similar(anchor, y1, 0.1)
+        if matches:
+            assert len(matches) == 1
+            if early_break:
+                return i-matches[0]
+            shift_dist = i-matches[0]
+            if shift_dist < 0:
+                shift_dist = y.shape[0] + shift_dist # account for wrapping index
+            if shift_candidates and shift_dist != shift_candidates[0]:
+                print("Warning: multiple shift candidates")
+                print(f"Found shift candidate: {shift_dist}")
+                print(f"Previous shift candidate: {shift_candidates[0]}")
+                shift_candidates.append(shift_dist)
+            elif not shift_candidates:
+                shift_candidates.append(shift_dist)
+                print(f"Found shift candidate: {shift_dist}")
+
+    assert len(shift_candidates) > 0
+    shift_size = shift_candidates[0]
+    return shift_size
+
+def shift_and_compare(y, y1, shift_size):
+
+    y1_shifted = np.roll(y1, shift_size, axis=0)
+    dist = np.linalg.norm(y1_shifted - y)
+    return dist
+
+def compare_tokens(y, y1):
+    num_matches = 0
+    num_total = 0
+    for i in tqdm(range(y.shape[0])):
+        y_token = y[i]
+        y1_token = y1[i]
+        if np.linalg.norm(y_token - y1_token) < 0.01:
+            num_matches += 1
+        num_total += 1
+    
+    return num_matches, num_total, num_matches/num_total
 
 def load_checkpoint(config, model, optimizer, lr_scheduler, loss_scaler, logger):
     logger.info(f"==============> Resuming form {config.MODEL.RESUME}....................")
