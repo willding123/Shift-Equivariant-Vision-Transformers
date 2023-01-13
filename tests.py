@@ -90,22 +90,15 @@ class TestShift(unittest.TestCase):
         # swin output 
         z = self.model1(x).cpu().detach().numpy()
         z1 = self.model1(x1).cpu().detach().numpy()
-        print("starts for loop")
-        for img_id in range(y.shape[0]):
-            print(f"Image {img_id}")
-            try:
-                y1_img = y1[img_id]
-                y_img = y[img_id]
-                shift_size = find_shift(y_img, y1_img, early_break=False)
-                dist = shift_and_compare(y_img, y1_img, shift_size)
-                print(f"shift size: {shift_size}")
-                print(f"Distance using poly: {dist}")
-                dist_orig = np.linalg.norm(y1_img - y_img)
-                print(f"Distance w.o: {dist_orig}")
-            except:
-                print(f"Failed for image {img_id}")
+
+        np.save("original.npy", y)
+        np.save("shifted.npy", y1)
+        np.save("swin.npy", z)
+        np.save("swin1.npy", z1)
 
 
+        # print(y.shape)
+        # self.model(x1[0])
 
 
     # def test_model(self): 
