@@ -23,15 +23,6 @@ except:
     print("[Warning] Fused window process have not been installed. Please refer to get_started.md for installation.")
 
 
-class PolyOrder1d(torch.autograd.Function):
-    @staticmethod 
-    def forward(ctx, x, grid_size, patch_size, norm=2):
-        B,C,L = x.shape 
-        
-        
-    @staticmethod
-    def backward(ctx, grad_in):
-        pass
  
 class PolyOrder(torch.autograd.Function):
     @staticmethod
@@ -39,9 +30,9 @@ class PolyOrder(torch.autograd.Function):
         device = "cuda" if use_gpu else "cpu"
         B, C, H, W = x.shape
         tmp = x.clone()
-        tmp = tmp.view(B,C,patch_size[0], grid_size[0], patch_size[0], grid_size[1] )
+        tmp = tmp.view(B,C,grid_size[0], patch_size[0], grid_size[0], patch_size[1] )
         tmp = torch.permute(tmp, (0,1,2, 4,3,5))
-        tmp = torch.permute(tmp.reshape(B,C, patch_size[0]**2, grid_size[0]**2), (0,1,3,2))
+        tmp = torch.permute(tmp.reshape(B,C, grid_size[0]**2, patch_size[0]**2), (0,1,3,2))
         tmp = torch.permute(tmp, (0,2,1,3))
         tmp = tmp.contiguous()
         # tmp = tmp.view(B,C,patch_size[0], grid_size[0], patch_size[0], grid_size[1] )
@@ -54,10 +45,10 @@ class PolyOrder(torch.autograd.Function):
         idx = torch.argmax(norm, dim=1).int()
         theta = torch.zeros((B,2,3), requires_grad=False).to(device).float()
         theta[:,0, 0] = 1; theta[:,1,1] = 1;
-        l = grid_size[0]-1
+        l = patch_size[0]-1
         x = pad(x, (0,l,0,l) ,"circular").float()
-        theta[:,1,2]  = (idx/grid_size[0]).int()*2/x.shape[2]
-        theta[:,0,2] = (idx%grid_size[1])*2/x.shape[3] 
+        theta[:,1,2]  = (idx/patch_size[0]).int()*2/x.shape[2]
+        theta[:,0,2] = (idx%patch_size[1])*2/x.shape[3] 
         ctx.theta =  theta; ctx.l = l; ctx.H = H; ctx.W = W; ctx.B = B; ctx.C = C
         grid = affine_grid(theta, (B,C,x.shape[2], x.shape[3]), align_corners= False)
         x = grid_sample(x, grid, "nearest", align_corners= False)
@@ -81,7 +72,7 @@ class PolyPatch(nn.Module):
     r""" PolyPatch Layer: 
     Args: 
         input_resolution (tuple of int): input resolution i.e img_size 
-        patch_size (int): patch size 
+        patch_size (int): patch size (number of pixels in a patch)
         in_chans (int): input dimensions 
         out_chans (int): output dimensions
         norm_layer : nn.LayerNorm if patch merging layer, None if image patching layer
@@ -89,10 +80,10 @@ class PolyPatch(nn.Module):
     def __init__(self, input_resolution, patch_size, in_chans, out_chans, norm_layer= None):
         super().__init__()
         self.input_resolution = input_resolution
-        self.patch_size = to_2tuple(patch_size)
+        self.patch_size = to_2tuple(patch_size) 
         self.in_chans = in_chans 
         self.out_chans = out_chans
-        self.grid_size = [input_resolution[0] // patch_size, input_resolution[1] // patch_size]
+        self.grid_size = [input_resolution[0] // patch_size, input_resolution[1] // patch_size] 
         self.patches_resolution = self.grid_size
         self.num_patches = self.patches_resolution[0] * self.patches_resolution[1]
 
@@ -116,33 +107,6 @@ class PolyPatch(nn.Module):
         if self.norm is not None:
             flops += Ho * Wo * self.out_chans
         return flops        
-
-# class Polyorder(nn.Module):
-#     def __init__(self, grid_size, patch_size, norm=2):
-#         super().__init__()
-#         self.grid_size = grid_size 
-#         self.patch_size = patch_size
-#         self.norm = norm
-
-#     def forward(self, x):
-#         # optimize the code by getting rid of outer for loop 
-#         # max_norm = 0
-#         B, C, H, W = x.shape
-#         tmp = x.clone()
-#         tmp = tmp.view(B,C,self.patch_size[0], self.grid_size[0], self.patch_size[0], self.grid_size[1] )
-#         tmp = torch.permute(tmp, (0,1,2, 4,3,5))
-#         tmp = torch.permute(tmp.reshape(B,C, self.patch_size[0]**2, self.grid_size[0]**2), (0,1,3,2))
-#         tmp = torch.permute(tmp, (0,2,1,3)).float()
-#         norm = torch.linalg.vector_norm(tmp, dim=(2,3)).int()
-#         idx = torch.argmax(norm, dim=1)
-#         del tmp
-#         # theta = torch.zeros((B,3,3))
-#         # theta[:,0, 0] = 1; theta[:,1,1] = 1; theta[:,2,2] =1
-#         # theta[:,0,2]  = -(idx/self.grid_size[0]).int(); theta[:,1,2] = -idx%self.grid_size[1]
-#         for i in range(x.shape[0]):
-#             x[i] = torch.roll(x[1], (-(idx/self.grid_size[0]).int(), -idx%self.grid_size[1]), (2,3))
-#         return  x
-
         
     
       

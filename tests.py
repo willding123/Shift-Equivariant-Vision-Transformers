@@ -29,56 +29,54 @@ np.random.seed(111)
 torch.random.manual_seed(111)
 class TestShift(unittest.TestCase):
     def setUp(self):
-        img_size = (224, 224)
-        patch_size = 7
-        in_chans = 3
-        norm_layer = nn.LayerNorm
-        patches_resolution = (32,32)
-        drop_rate = 0.1 
-        embed_dim = 96
-        dim = 96
+        self.img_size = (224, 224)
+        self.patch_size = 7
+        self.in_chans = 3
+        self.norm_layer = nn.LayerNorm
+        self.patches_resolution = (32,32)
+        self.drop_rate = 0.1 
+        self.embed_dim = 96
         # poly swin transformer block 
-        # self.model = nn.Sequential(
-            # PolyPatch(input_resolution = img_size, patch_size = patch_size, in_chans = in_chans, out_chans = embed_dim, norm_layer=norm_layer)
-            # nn.Dropout(p=drop_rate),
-            # BasicLayer(dim=dim,
-            #                    input_resolution=(patches_resolution[0],
-            #                                      patches_resolution[1]),
-            #                    depth=2,
-            #                    num_heads=3,
-            #                    window_size=7,
-            #                    norm_layer=norm_layer,
-            #                    downsample=PolyPatch
-        # )
-        # )
-        print("polypatch")
-        self.model = PolyPatch(input_resolution = img_size, patch_size = patch_size, in_chans = in_chans, out_chans = embed_dim, norm_layer=norm_layer)
+        self.model = nn.Sequential(
+            PolyPatch(input_resolution = img_size, patch_size = patch_size, in_chans = in_chans, out_chans = embed_dim, norm_layer=norm_layer),
+            nn.Dropout(p=drop_rate),
+            BasicLayer(dim=dim,
+                               input_resolution=(patches_resolution[0],
+                                                 patches_resolution[1]),
+                               depth=2,
+                               num_heads=3,
+                               window_size=7,
+                               norm_layer=norm_layer,
+                               downsample=PolyPatch
+        )
+        )
         # swin transformer block 
-        # self.model1 = nn.Sequential(
-        #     PatchEmbed(
-        #     img_size=img_size, patch_size=patch_size, in_chans=in_chans, embed_dim=embed_dim,
-        #     norm_layer=norm_layer),
-        #     nn.Dropout(p=drop_rate),
-        #     BasicLayer(dim=int(96),
-        #                        input_resolution=(patches_resolution[0],
-        #                                          patches_resolution[1]),
-        #                        depth=2,
-        #                        num_heads=3,
-        #                        window_size=7,
-        #                        norm_layer=norm_layer,
-        #                        downsample=PatchMerging
-        #     )
-
-        # )
-        print("patch embed")
-        self.model1 = PatchEmbed(img_size=img_size, patch_size=patch_size, in_chans=in_chans, embed_dim=embed_dim,norm_layer=norm_layer)
-        print("move to gpu")
+        self.model1 = nn.Sequential(
+            PatchEmbed(
+            img_size=img_size, patch_size=patch_size, in_chans=in_chans, embed_dim=embed_dim,
+            norm_layer=norm_layer),
+            nn.Dropout(p=drop_rate),
+            BasicLayer(dim=int(96),
+                               input_resolution=(patches_resolution[0],
+                                                 patches_resolution[1]),
+                               depth=2,
+                               num_heads=3,
+                               window_size=7,
+                               norm_layer=norm_layer,
+                               downsample=PatchMerging
+            )
+        )
         self.model = self.model.cuda()
         self.model1 = self.model1.cuda()
 
 
-    def show_features(self): 
-        print("starts...")
+    def test_patch_embed(self): 
+        """
+        Should expect embeddings of an original image and its shifted copy to have a bijective matching
+        """
+        self.model = PolyPatch(input_resolution = self.img_size, patch_size = self.patch_size, in_chans = self.in_chans, 
+                                out_chans = self.embed_dim, norm_layer=self.norm_layer)
+        self.model1 = PatchEmbed(img_size=self.img_size, patch_size=self.patch_size, in_chans=self.in_chans, embed_dim=self.embed_dim,norm_layer=self.norm_layer)
         x = torch.rand((4,3,224,224)).cuda()
         # shifts = tuple(np.random.randint(0,32,2))
         shifts = (37,43)
@@ -91,10 +89,22 @@ class TestShift(unittest.TestCase):
         z = self.model1(x).cpu().detach().numpy()
         z1 = self.model1(x1).cpu().detach().numpy()
 
-        np.save("original.npy", y)
-        np.save("shifted.npy", y1)
-        np.save("swin.npy", z)
-        np.save("swin1.npy", z1)
+        # np.save("original.npy", y)
+        # np.save("shifted.npy", y1)
+        # np.save("swin.npy", z)
+        # np.save("swin1.npy", z1)
+        for img_id in range(y.shape[0]):
+
+            # image 1 cannot find a candidate
+            print(f"Image {img_id}")
+            try:
+                y1_img = y1[img_id]
+                y_img = y[img_id]
+                confirm_bijective_matches(y_img, y1_img)
+                print("There is a bijection between y_img and y1_img")
+                
+            except: 
+                print("Failed")
 
 
         # print(y.shape)
@@ -136,21 +146,36 @@ class TestShift(unittest.TestCase):
     #     # print(loss)
     #     # print(loss1)
 
+
+        
     def test_polyorder(self):
-        patch_sizes = [(2,2), (4,4), (7,7), (8,8), (14,14)]
-        patches_resolutions = [(int(224/x[0]),int(224/x[1])) for x in patch_sizes]
+        patches_resolutions = [(2,2), (4,4), (7,7), (8,8), (14,14)]
+        patch_sizes = [(int(224/x[0]),int(224/x[1])) for x in patches_resolutions]
         # initial setup: for each patch size experiment
         # we set first polyphase of each image to highest energy, roll each image randomly 
         for i in range(len(patch_sizes)):
             x = torch.rand((4,3,224,224))
             for j in range(x.shape[0]):
-                x[j, :, 0::patches_resolutions[i][0], 0::patches_resolutions[i][1]] = 2 
+                x[j, :, 0::patch_sizes[i][0], 0::patch_sizes[i][1]] = 2 
                 x = np.roll(x, tuple(np.random.randint(0,patches_resolutions[i], 2)), axis = (2,3))
             x = torch.tensor(x)
             y = PolyOrder.apply(x, patches_resolutions[i], patch_sizes[i], 2, False)
-            assert torch.all(y[:,:,0::patches_resolutions[i][0], 0::patches_resolutions[i][1]]==2).item()
-        
-        
+            assert torch.all(y[:,:,0::patch_sizes[i][0], 0::patch_sizes[i][1]]==2).item()
+        print("Done!")
+    
+    def test_polyorder2(self): 
+        """Test whether poly order will yield the same predictions for an image and its shifted copy"""
+        x = torch.rand((1,1,14,14)).cuda()
+        # shifts = tuple(np.random.randint(0,32,2))
+        shifts = (37,43)
+        x1 = torch.roll(x, shifts, (2,3)).cuda()
+        grid_size = (2,2); patch_size = (7,7); 
+        y = PolyOrder.apply(x, grid_size, patch_size)
+        y1 = PolyOrder.apply(x1, grid_size, patch_size)
+        # assert torch.linalg.norm(y-y1) < 1e-3
+        assert torch.linalg.norm(y[:,:,0::patch_size[0]]) == torch.linalg.norm(y1[:,:,0::patch_size[0]]) 
+        print(y)
+        print(y1)
 
     # def test_window_atten(self): 
     #     x = torch.rand(64)
@@ -179,6 +204,7 @@ if __name__ == "__main__":
         test.setUp()
         test.show_features()
     except:
+        print("Exception!")
         traceback.print_exc()
     finally: 
         end = time.time() - start 

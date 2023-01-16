@@ -21,6 +21,19 @@ def find_similar(anchor:np.array, y_search:np.array, threshold:float):
             matches.append(i)
     return matches
 
+
+def confirm_bijective_matches(y, y1): 
+    count = 0
+    for i in tqdm(range(y.shape[0])):
+        anchor = y[i]
+        matches = find_similar(anchor, y1, 0.1)
+        if matches:
+            count += 1
+        else: 
+            break 
+    assert count  == y.shape[0]
+
+
 def find_shift(y, y1, early_break = False):
     shift_candidates = []
     for i in tqdm(range(y.shape[0])):
