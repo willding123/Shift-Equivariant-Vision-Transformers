@@ -30,45 +30,14 @@ torch.random.manual_seed(111)
 class TestShift(unittest.TestCase):
     def setUp(self):
         self.img_size = (224, 224)
-        self.patch_size = 7
+        self.patch_size = 4
         self.in_chans = 3
         self.norm_layer = nn.LayerNorm
-        self.patches_resolution = (32,32)
+        self.patches_resolution = (self.img_size[0]//self.patch_size, self.img_size[1]//self.patch_size)
         self.drop_rate = 0.1 
         self.embed_dim = 96
         self.mlp_ratio = 4
-        # poly swin transformer block 
-        self.model = nn.Sequential(
-            PolyPatch(input_resolution = img_size, patch_size = patch_size, in_chans = in_chans, out_chans = embed_dim, norm_layer=norm_layer),
-            nn.Dropout(p=drop_rate),
-            BasicLayer(dim=dim,
-                               input_resolution=(patches_resolution[0],
-                                                 patches_resolution[1]),
-                               depth=2,
-                               num_heads=3,
-                               window_size=7,
-                               norm_layer=norm_layer,
-                               downsample=PolyPatch
-        )
-        )
-        # swin transformer block 
-        self.model1 = nn.Sequential(
-            PatchEmbed(
-            img_size=img_size, patch_size=patch_size, in_chans=in_chans, embed_dim=embed_dim,
-            norm_layer=norm_layer),
-            nn.Dropout(p=drop_rate),
-            BasicLayer(dim=int(96),
-                               input_resolution=(patches_resolution[0],
-                                                 patches_resolution[1]),
-                               depth=2,
-                               num_heads=3,
-                               window_size=7,
-                               norm_layer=norm_layer,
-                               downsample=PatchMerging
-            )
-        )
-        self.model = self.model.cuda()
-        self.model1 = self.model1.cuda()
+        self.window_size = 7
 
 
     def test_patch_embed(self): 
@@ -113,14 +82,14 @@ class TestShift(unittest.TestCase):
 
     def test_swin_block(self):
         # test poly swin transformer block
-        self.patch_embed = PolyPatch(input_resolution = self.img_size, patch_size = self.patch_size, in_chans = self.in_chans,
+        self.model = nn.Sequential()
+        self.model.patch_embed = PolyPatch(input_resolution = self.img_size, patch_size = self.patch_size, in_chans = self.in_chans,
                         out_chans = self.embed_dim, norm_layer=self.norm_layer)
-        self.pos_drop = nn.Dropout(p=drop_rate)
-        dpr = [x.item() for x in torch.linspace(0, drop_path_rate, sum(depths))]  # stochastic depth decay rule
-        self.blocks = nn.ModuleList([
+        self.model.pos_drop = nn.Dropout(p=self.drop_rate)
+        self.model.blocks = nn.ModuleList([
             SwinTransformerBlock(dim=self.embed_dim, input_resolution=(self.patches_resolution[0], self.patches_resolution[1]),
-                                 num_heads=3, window_size=7,
-                                 shift_size=0 if (i % 2 == 0) else window_size // 2,
+                                 num_heads=3, window_size=self.window_size,
+                                 shift_size=0 if (i % 2 == 0) else self.window_size // 2,
                                  mlp_ratio=self.mlp_ratio,
                                  qkv_bias=True, qk_scale=None,
                                  drop=0.0, attn_drop=0.0,
@@ -128,16 +97,24 @@ class TestShift(unittest.TestCase):
                                  norm_layer=self.norm_layer,
                                  fused_window_process=True)
             for i in range(2)])
-        self.model = nn.Sequential(self.patch_embed, self.pos_drop, self.blocks)
         self.model = self.model.cuda()
+
+        def pred(x):
+            x = self.model.patch_embed(x)
+            x = self.model.pos_drop(x)
+            for blk in self.model.blocks:
+                x = blk(x)
+            return x 
+
+
         x = torch.rand((4,3,224,224)).cuda()
         # shifts = tuple(np.random.randint(0,32,2))
         shifts = (37,43)
         x1 = torch.roll(x, shifts, (2,3)).cuda()
         # poly swin output
-        print("prediction")
-        y = self.model(x).cpu().detach().numpy()
-        y1 = self.model(x1).cpu().detach().numpy()
+        print("predicting")
+        y = pred(x).cpu().detach().numpy()
+        y1 = pred(x1).cpu().detach().numpy()
         for img_id in range(y.shape[0]):
             # image 1 cannot find a candidate
             print(f"Image {img_id}")
