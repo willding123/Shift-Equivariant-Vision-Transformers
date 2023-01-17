@@ -26,7 +26,7 @@ def confirm_bijective_matches(y, y1):
     count = 0
     for i in tqdm(range(y.shape[0])):
         anchor = y[i]
-        matches = find_similar(anchor, y1, 0.1)
+        matches = find_similar(anchor, y1, 0.001)
         if matches:
             count += 1
         else: 

@@ -36,6 +36,7 @@ class TestShift(unittest.TestCase):
         self.patches_resolution = (32,32)
         self.drop_rate = 0.1 
         self.embed_dim = 96
+        self.mlp_ratio = 4
         # poly swin transformer block 
         self.model = nn.Sequential(
             PolyPatch(input_resolution = img_size, patch_size = patch_size, in_chans = in_chans, out_chans = embed_dim, norm_layer=norm_layer),
@@ -109,6 +110,46 @@ class TestShift(unittest.TestCase):
 
         # print(y.shape)
         # self.model(x1[0])
+
+    def test_swin_block(self):
+        # test poly swin transformer block
+        self.patch_embed = PolyPatch(input_resolution = self.img_size, patch_size = self.patch_size, in_chans = self.in_chans,
+                        out_chans = self.embed_dim, norm_layer=self.norm_layer)
+        self.pos_drop = nn.Dropout(p=drop_rate)
+        dpr = [x.item() for x in torch.linspace(0, drop_path_rate, sum(depths))]  # stochastic depth decay rule
+        self.blocks = nn.ModuleList([
+            SwinTransformerBlock(dim=self.embed_dim, input_resolution=(self.patches_resolution[0], self.patches_resolution[1]),
+                                 num_heads=3, window_size=7,
+                                 shift_size=0 if (i % 2 == 0) else window_size // 2,
+                                 mlp_ratio=self.mlp_ratio,
+                                 qkv_bias=True, qk_scale=None,
+                                 drop=0.0, attn_drop=0.0,
+                                 drop_path=0,
+                                 norm_layer=self.norm_layer,
+                                 fused_window_process=True)
+            for i in range(2)])
+        self.model = nn.Sequential(self.patch_embed, self.pos_drop, self.blocks)
+        self.model = self.model.cuda()
+        x = torch.rand((4,3,224,224)).cuda()
+        # shifts = tuple(np.random.randint(0,32,2))
+        shifts = (37,43)
+        x1 = torch.roll(x, shifts, (2,3)).cuda()
+        # poly swin output
+        print("prediction")
+        y = self.model(x).cpu().detach().numpy()
+        y1 = self.model(x1).cpu().detach().numpy()
+        for img_id in range(y.shape[0]):
+            # image 1 cannot find a candidate
+            print(f"Image {img_id}")
+            try:
+                y1_img = y1[img_id]
+                y_img = y[img_id]
+                confirm_bijective_matches(y_img, y1_img)
+                print("There is a bijection between y_img and y1_img")
+                
+            except: 
+                print("Failed")
+        
 
 
     # def test_model(self): 
@@ -202,7 +243,7 @@ if __name__ == "__main__":
     start = time.time()
     try: 
         test.setUp()
-        test.show_features()
+        test.test_swin_block()
     except:
         print("Exception!")
         traceback.print_exc()
