@@ -34,7 +34,7 @@ class TestShift(unittest.TestCase):
         self.in_chans = 3
         self.norm_layer = nn.LayerNorm
         self.patches_resolution = (self.img_size[0]//self.patch_size, self.img_size[1]//self.patch_size)
-        self.drop_rate = 0.1 
+        self.drop_rate = 0.0 
         self.embed_dim = 96
         self.mlp_ratio = 4
         self.window_size = 7
@@ -82,11 +82,10 @@ class TestShift(unittest.TestCase):
 
     def test_swin_block(self):
         # test poly swin transformer block
-        self.model = nn.Sequential()
-        self.model.patch_embed = PolyPatch(input_resolution = self.img_size, patch_size = self.patch_size, in_chans = self.in_chans,
-                        out_chans = self.embed_dim, norm_layer=self.norm_layer)
-        self.model.pos_drop = nn.Dropout(p=self.drop_rate)
-        self.model.blocks = nn.ModuleList([
+        patch_embed = PolyPatch(input_resolution = self.img_size, patch_size = self.patch_size, in_chans = self.in_chans,
+                        out_chans = self.embed_dim, norm_layer=self.norm_layer).cuda()
+        pos_drop = nn.Dropout(p=self.drop_rate).cuda()
+        blocks = nn.ModuleList([
             SwinTransformerBlock(dim=self.embed_dim, input_resolution=(self.patches_resolution[0], self.patches_resolution[1]),
                                  num_heads=3, window_size=self.window_size,
                                  shift_size=0 if (i % 2 == 0) else self.window_size // 2,
@@ -96,16 +95,84 @@ class TestShift(unittest.TestCase):
                                  drop_path=0,
                                  norm_layer=self.norm_layer,
                                  fused_window_process=True)
-            for i in range(2)])
-        self.model = self.model.cuda()
+            for i in range(2)]).cuda()
+        # self.model = nn.Sequential(patch_embed, pos_drop, blocks).cuda()
 
         def pred(x):
-            x = self.model.patch_embed(x)
-            x = self.model.pos_drop(x)
-            for blk in self.model.blocks:
+            x = patch_embed(x)
+            x = pos_drop(x)
+            for blk in blocks:
                 x = blk(x)
             return x 
 
+        def reorder(x, idx = 0):
+            blk = blocks[idx]
+            H, W = blk.input_resolution
+            B, L, C = x.shape
+            blk.grid_size = (H // blk.window_size, W // blk.window_size)
+            assert L == H * W, "input feature has wrong size"
+            # idx stands for the index of the block
+            x = blk.norm1(x)
+            x = torch.permute(x.view(B,H,W,C), (0,3,1,2))
+            # # rearrange x based on max polyphase 
+            x =  PolyOrder.apply(x, blk.grid_size, to_2tuple(blk.window_size))
+            x = torch.permute(x, (0,2,3,1)).contiguous()
+            return x
+        
+        def cyclic_shift(x, idx = 0):
+            blk = blocks[idx] 
+            B, H, W, C = x.shape
+            L = H*W
+                # cyclic shift
+            if blk.shift_size > 0:
+                if not blk.fused_window_process:
+                    shifted_x = torch.roll(x, shifts=(-blk.shift_size, -blk.shift_size), dims=(1, 2))
+                    # partition windows
+                    x_windows = window_partition(shifted_x, blk.window_size)  # nW*B, window_size, window_size, C
+                else:
+                    x_windows = WindowProcess.apply(x, B, H, W, C, -blk.shift_size, blk.window_size)
+            else:
+                shifted_x = x
+                # partition windows
+                x_windows = window_partition(shifted_x, blk.window_size)  # nW*B, window_size, window_size, C
+            
+            x_windows = x_windows.view(-1, self.window_size * self.window_size, C)  # nW*B, window_size*window_size, C
+
+            return x_windows
+
+        def attention(x_windows, idx = 0):
+            C = x_windows.shape[-1]
+            blk = blocks[idx]
+            attn_windows = blk.attn(x_windows, mask=blk.attn_mask)  # nW*B, window_size*window_size, C
+            attn_windows = attn_windows.view(-1, blk.window_size, blk.window_size, C)
+            return attn_windows
+
+        def reverse_cyclic_shift(attn_windows, shortcut, idx = 0):            
+            blk = blocks[idx]
+            H, W = blk.input_resolution
+            C = attn_windows.shape[-1]
+            B = 4
+            # reverse cyclic shift
+            if blk.shift_size > 0:
+                if not blk.fused_window_process:
+                    shifted_x = window_reverse(attn_windows, blk.window_size, H, W)  # B H' W' C
+                    x = torch.roll(shifted_x, shifts=(blk.shift_size, blk.shift_size), dims=(1, 2))
+                else:
+                    x = WindowProcessReverse.apply(attn_windows, B, H, W, C, blk.shift_size, blk.window_size)
+            else:
+                shifted_x = window_reverse(attn_windows, blk.window_size, H, W)  # B H' W' C
+                x = shifted_x
+            x = x.view(B, H * W, C)
+            x = shortcut + blk.drop_path(x)
+            return x
+        
+        def check_window(t, t1):
+            count = 0 
+            for i in range(t.shape[0]):
+                for j in range(t1.shape[0]):
+                    if torch.linalg.norm(t[i]-t1[j]) < 0.0001:
+                        count += 1
+            assert count  == t.shape[0]
 
         x = torch.rand((4,3,224,224)).cuda()
         # shifts = tuple(np.random.randint(0,32,2))
@@ -113,19 +180,20 @@ class TestShift(unittest.TestCase):
         x1 = torch.roll(x, shifts, (2,3)).cuda()
         # poly swin output
         print("predicting")
-        y = pred(x).cpu().detach().numpy()
-        y1 = pred(x1).cpu().detach().numpy()
-        for img_id in range(y.shape[0]):
-            # image 1 cannot find a candidate
-            print(f"Image {img_id}")
-            try:
-                y1_img = y1[img_id]
-                y_img = y[img_id]
-                confirm_bijective_matches(y_img, y1_img)
-                print("There is a bijection between y_img and y1_img")
-                
-            except: 
-                print("Failed")
+        p = patch_embed(x)
+        p1 = patch_embed(x1)
+        t = reorder(p)
+        t1 = reorder(p1)
+#        confirm_bijective_matches_batch(t.view(t.shape[0], -1 ,t.shape[-1]).cpu().detach().numpy(), t1.view(t.shape[0], -1 ,t.shape[-1]).cpu().detach().numpy())
+        t = cyclic_shift(t, 0)
+        t1 = cyclic_shift(t1, 0)
+        check_window(t, t1)
+        t = attention(t, 0)
+        t1 = attention(t1, 0)
+        check_window(t, t1)
+        t = reverse_cyclic_shift(t, p, 0)
+        t1 = reverse_cyclic_shift(t1, p1, 0)
+        confirm_bijective_matches_batch(t.cpu().detach().numpy(), t1.cpu().detach().numpy())
 
     def test_model(self): 
         x = torch.rand((4,3,224,224)).cuda()
@@ -158,8 +226,6 @@ class TestShift(unittest.TestCase):
         print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=10))
         print(loss)
         print(loss1)
-
-
         
     def test_polyorder(self):
         patches_resolutions = [(2,2), (4,4), (7,7), (8,8), (14,14)]

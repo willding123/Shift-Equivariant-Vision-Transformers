@@ -12,6 +12,13 @@ from torch._six import inf
 import numpy as np 
 from tqdm import tqdm
 
+
+def confirm_bijective_matches_batch(y,y1):
+    for i in tqdm(range(y.shape[0])):
+        y_img = y[i]
+        y1_img = y1[i]
+        confirm_bijective_matches(y_img, y1_img)
+
 def find_similar(anchor:np.array, y_search:np.array, threshold:float):
     ''' Find matching of anchor in y_search matrix
     '''
@@ -24,7 +31,7 @@ def find_similar(anchor:np.array, y_search:np.array, threshold:float):
 
 def confirm_bijective_matches(y, y1): 
     count = 0
-    for i in tqdm(range(y.shape[0])):
+    for i in range(y.shape[0]):
         anchor = y[i]
         matches = find_similar(anchor, y1, 0.001)
         if matches:
