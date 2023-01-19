@@ -126,8 +126,6 @@ class TestShift(unittest.TestCase):
                 
             except: 
                 print("Failed")
-        
-
 
     def test_model(self): 
         x = torch.rand((4,3,224,224)).cuda()
