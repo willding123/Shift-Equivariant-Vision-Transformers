@@ -66,11 +66,36 @@ def find_shift(y, y1, early_break = False):
     shift_size = shift_candidates[0]
     return shift_size
 
-def shift_and_compare(y, y1, shift_size):
+def find_shift2d(y_tok, y1_tok, early_break):
+    shift_candidates = []
+    H, W, C = y_tok.shape
+    token = y_tok[0][0]
+    for i in range(H):
+        for j in range(W):
+            if np.linalg.norm(token - y1_tok[i][j]) < 0.01:
+                if early_break:
+                    return [(i, j)]
+                shift_candidates.append((i, j))
+    assert len(shift_candidates) > 0
+    return shift_candidates
+                
 
-    y1_shifted = np.roll(y1, shift_size, axis=0)
-    dist = np.linalg.norm(y1_shifted - y)
+def find_shift2d_batch(y, y1, early_break): 
+    shift_candidates = []
+    B, H, W, C = y.shape
+    for i in tqdm(range(B)):
+        y_img = y[i]
+        y1_img = y1[i]
+        shift_size = find_shift2d(y_img, y1_img, early_break)
+        shift_candidates.append(shift_size[0])
+    return shift_candidates
+
+def shift_and_compare(y, y1, shifts, dim):
+    y1_shifted = torch.roll(y, shifts, dim = dim)
+    dist = torch.linalg.norm(y1_shifted - y)
     return dist
+
+
 
 def compare_tokens(y, y1):
     num_matches = 0
