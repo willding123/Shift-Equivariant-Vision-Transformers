@@ -132,4 +132,3 @@ dependencies:
       - wandb==0.13.6
       - yacs==0.1.8
       - zipp==3.11.0
-prefix: /nfshomes/pding/miniconda3/envs/swin

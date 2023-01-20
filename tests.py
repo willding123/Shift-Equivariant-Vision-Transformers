@@ -186,7 +186,7 @@ class TestShift(unittest.TestCase):
         t = reorder(p)
         t1 = reorder(p1)
         shifts = find_shift2d_batch(t, t1, early_break=True)
-        print(shift_and_compare(t, t1, shifts, (1,2) ))
+        print(shift_and_compare(t, t1, shifts[0], (1,2) ))
         # confirm_bijective_matches_batch(t.view(t.shape[0], -1 ,t.shape[-1]).cpu().detach().numpy(), t1.view(t.shape[0], -1 ,t.shape[-1]).cpu().detach().numpy())
         t = cyclic_shift(t, 0)
         t1 = cyclic_shift(t1, 0)

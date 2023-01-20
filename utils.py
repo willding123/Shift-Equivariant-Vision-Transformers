@@ -72,11 +72,13 @@ def find_shift2d(y_tok, y1_tok, early_break):
     token = y_tok[0][0]
     for i in range(H):
         for j in range(W):
-            if np.linalg.norm(token - y1_tok[i][j]) < 0.01:
+            if torch.linalg.norm(token - y1_tok[i][j]) < 0.01:
                 if early_break:
                     return [(i, j)]
                 shift_candidates.append((i, j))
     assert len(shift_candidates) > 0
+    print(f"Found {len(shift_candidates)} shift candidates")
+    print(f"Found {len(set(shift_candidates))} unique candidates")
     return shift_candidates
                 
 
@@ -91,9 +93,12 @@ def find_shift2d_batch(y, y1, early_break):
     return shift_candidates
 
 def shift_and_compare(y, y1, shifts, dim):
-    y1_shifted = torch.roll(y, shifts, dim = dim)
-    dist = torch.linalg.norm(y1_shifted - y)
-    return dist
+    distances = []
+    for i, shift in enumerate(shifts):
+        y1_shifted = torch.roll(y1[i], shift, dims=dim)
+        dist = torch.linalg.norm(y1_shifted - y[i])
+        distances.append(dist)
+    return distances
 
 
 
