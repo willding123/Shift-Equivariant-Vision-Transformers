@@ -95,9 +95,9 @@ def find_shift2d_batch(y, y1, early_break):
 def shift_and_compare(y, y1, shifts, dim):
     distances = []
     for i, shift in enumerate(shifts):
-        y1_shifted = torch.roll(y1[i], shift, dims=dim)
-        dist = torch.linalg.norm(y1_shifted - y[i])
-        distances.append(dist)
+        y_shifted = torch.roll(y[i], shift, dims=dim)
+        dist = torch.linalg.norm(y_shifted - y1[i])
+        distances.append(dist.item())
     return distances
 
 

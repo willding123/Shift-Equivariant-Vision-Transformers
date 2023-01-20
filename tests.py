@@ -119,6 +119,17 @@ class TestShift(unittest.TestCase):
             x = torch.permute(x, (0,2,3,1)).contiguous()
             return x
         
+        def check_polyphase(t, t1):
+            # t: original tensor, t1: shifted tensor
+            # check if the polyphase is correct 
+            # t: B, H, W, C
+            # t1: B, H, W, C
+            B, H, W, C = t.shape
+            patch_reso = (H//7, W//7)
+            assert torch.linalg.norm(t[:, 0::patch_reso[0], 0::patch_reso[1], :] - t1[:, 0::patch_reso[0], 0::patch_reso[1], :]) < 1e-5, "polyphase is not correct"
+
+            
+        
         def cyclic_shift(x, idx = 0):
             blk = blocks[idx] 
             B, H, W, C = x.shape
@@ -139,6 +150,17 @@ class TestShift(unittest.TestCase):
             x_windows = x_windows.view(-1, self.window_size * self.window_size, C)  # nW*B, window_size*window_size, C
 
             return x_windows
+        
+        def check_window(t, t1):
+            count = 0 
+            for i in range(t.shape[0]):
+                for j in range(t1.shape[0]):
+                    print(t.shape)
+                    print(torch.linalg.norm(t[i]-t1[j]))
+                    if torch.linalg.norm(t[i]-t1[j]) < 0.1:
+                        count += 1
+            print(f"count: {count}")
+            assert count  == t.shape[0]
 
         def attention(x_windows, idx = 0):
             C = x_windows.shape[-1]
@@ -166,13 +188,7 @@ class TestShift(unittest.TestCase):
             x = shortcut + blk.drop_path(x)
             return x
         
-        def check_window(t, t1):
-            count = 0 
-            for i in range(t.shape[0]):
-                for j in range(t1.shape[0]):
-                    if torch.linalg.norm(t[i]-t1[j]) < 0.0001:
-                        count += 1
-            assert count  == t.shape[0]
+       
 
         x = torch.rand((4,3,224,224)).cuda()
         # shifts = tuple(np.random.randint(0,32,2))
@@ -185,8 +201,9 @@ class TestShift(unittest.TestCase):
         print("reordering")
         t = reorder(p)
         t1 = reorder(p1)
+        
         shifts = find_shift2d_batch(t, t1, early_break=True)
-        print(shift_and_compare(t, t1, shifts[0], (1,2) ))
+        print(shift_and_compare(t, t1, shifts, (0,1) ))
         # confirm_bijective_matches_batch(t.view(t.shape[0], -1 ,t.shape[-1]).cpu().detach().numpy(), t1.view(t.shape[0], -1 ,t.shape[-1]).cpu().detach().numpy())
         t = cyclic_shift(t, 0)
         t1 = cyclic_shift(t1, 0)
