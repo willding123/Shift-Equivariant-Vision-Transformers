@@ -30,12 +30,12 @@ torch.random.manual_seed(111)
 class TestShift(unittest.TestCase):
     def setUp(self):
         self.img_size = (224, 224)
-        self.patch_size = 4
+        self.patch_size = 16
         self.in_chans = 3
-        self.norm_layer = nn.LayerNorm
+        self.norm_layer = nn.LayerNorm 
         self.patches_resolution = (self.img_size[0]//self.patch_size, self.img_size[1]//self.patch_size)
         self.drop_rate = 0.0 
-        self.embed_dim = 96
+        self.embed_dim = 1
         self.mlp_ratio = 4
         self.window_size = 7
 
@@ -83,11 +83,11 @@ class TestShift(unittest.TestCase):
     def test_swin_block(self):
         # test poly swin transformer block
         patch_embed = PolyPatch(input_resolution = self.img_size, patch_size = self.patch_size, in_chans = self.in_chans,
-                        out_chans = self.embed_dim, norm_layer=self.norm_layer).cuda()
+                        out_chans = self.embed_dim, norm_layer=None).cuda()
         pos_drop = nn.Dropout(p=self.drop_rate).cuda()
         blocks = nn.ModuleList([
             SwinTransformerBlock(dim=self.embed_dim, input_resolution=(self.patches_resolution[0], self.patches_resolution[1]),
-                                 num_heads=3, window_size=self.window_size,
+                                 num_heads=1, window_size=self.window_size,
                                  shift_size=0 if (i % 2 == 0) else self.window_size // 2,
                                  mlp_ratio=self.mlp_ratio,
                                  qkv_bias=True, qk_scale=None,
@@ -112,7 +112,7 @@ class TestShift(unittest.TestCase):
             blk.grid_size = (H // blk.window_size, W // blk.window_size)
             assert L == H * W, "input feature has wrong size"
             # idx stands for the index of the block
-            x = blk.norm1(x)
+            # x = blk.norm1(x)
             x = torch.permute(x.view(B,H,W,C), (0,3,1,2))
             # # rearrange x based on max polyphase 
             x =  PolyOrder.apply(x, blk.grid_size, to_2tuple(blk.window_size))
@@ -168,7 +168,7 @@ class TestShift(unittest.TestCase):
             count = 0 
             for i in range(t.shape[0]):
                 for j in range(t1.shape[0]):
-                    if torch.linalg.norm(t[i]-t1[j]) < 0.1:
+                    if torch.linalg.norm(t[i]-t1[j]) == 0:
                         count += 1
             print(f"count: {count}")
             assert count  == t.shape[0]
@@ -180,11 +180,11 @@ class TestShift(unittest.TestCase):
             attn_windows = attn_windows.view(-1, blk.window_size, blk.window_size, C)
             return attn_windows
 
-        def reverse_cyclic_shift(attn_windows, shortcut, idx = 0):            
+        def reverse_cyclic_shift(attn_windows, shortcut, B, idx = 0):            
             blk = blocks[idx]
             H, W = blk.input_resolution
             C = attn_windows.shape[-1]
-            B = 4
+            B = B
             # reverse cyclic shift
             if blk.shift_size > 0:
                 if not blk.fused_window_process:
@@ -200,8 +200,8 @@ class TestShift(unittest.TestCase):
             return x
         
        
-
-        x = torch.rand((4,3,224,224)).cuda()
+        x = torch.rand((1,3,224,224)).cuda()
+        B, C, H, W = x.shape
         # shifts = tuple(np.random.randint(0,32,2))
         shifts = (37,43)
         x1 = torch.roll(x, shifts, (2,3)).cuda()
@@ -222,8 +222,8 @@ class TestShift(unittest.TestCase):
         t = attention(t, 0)
         t1 = attention(t1, 0)
         check_window(t, t1)
-        t = reverse_cyclic_shift(t, p, 0)
-        t1 = reverse_cyclic_shift(t1, p1, 0)
+        t = reverse_cyclic_shift(t, p, 1, 0)
+        t1 = reverse_cyclic_shift(t1, p1, 1, 0)
         confirm_bijective_matches_batch(t.cpu().detach().numpy(), t1.cpu().detach().numpy())
 
     def test_model(self): 

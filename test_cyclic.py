@@ -1,8 +1,8 @@
 # %%
 import torch
-B = 4
+B = 1
 C = 1
-feature_size = 56
+feature_size = 14
 nums = list(range(1, feature_size**2 + 1))
 
 x = torch.zeros(B, C, feature_size, feature_size)
@@ -10,16 +10,17 @@ for i in range(B):
     for j in range(C):
         x[i, j] = torch.tensor(nums).reshape(feature_size, feature_size)
 
+x = x.int()
 window_size = (7, 7)
-window_resolution = (8, 8)
+window_resolution = (2, 2)
 
 x1 = x.clone()
 
 x2 = x.clone()
 
-x1 = torch.roll(x1, shifts=(-1,-1), dims=(2,3))
+x1 = torch.roll(x1, shifts=(-6,-6), dims=(2,3))
 x1_rolled = x1.clone()
-x2 = torch.roll(x2, shifts=(-3,-1), dims=(2,3))
+x2 = torch.roll(x2, shifts=(-13,-6), dims=(2,3))
 x2_rolled = x2.clone()
 # %%
 
