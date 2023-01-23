@@ -1,7 +1,7 @@
 # %%
 import torch
 B = 4
-C = 3
+C = 1
 feature_size = 56
 nums = list(range(1, feature_size**2 + 1))
 
