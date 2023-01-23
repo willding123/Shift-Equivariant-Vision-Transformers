@@ -212,8 +212,6 @@ class TestShift(unittest.TestCase):
         print("reordering")
         t = reorder(p)
         t1 = reorder(p1)
-        
-
         shifts = find_shift2d_batch(t, t1, early_break=True)
         print(shift_and_compare(t, t1, shifts, (0,1) ))
         check_polyphase(t, t1, shifts)

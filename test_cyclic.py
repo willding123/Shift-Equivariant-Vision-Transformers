@@ -1,8 +1,8 @@
 # %%
 import torch
-B = 1
-C = 1
-feature_size = 6
+B = 4
+C = 3
+feature_size = 56
 nums = list(range(1, feature_size**2 + 1))
 
 x = torch.zeros(B, C, feature_size, feature_size)
@@ -10,8 +10,8 @@ for i in range(B):
     for j in range(C):
         x[i, j] = torch.tensor(nums).reshape(feature_size, feature_size)
 
-window_size = (2, 2)
-window_resolution = (3, 3)
+window_size = (7, 7)
+window_resolution = (8, 8)
 
 x1 = x.clone()
 
@@ -41,3 +41,4 @@ w1 = x1.permute(0, 1, 3, 2, 4, 5).contiguous().view(-1, window_size[0], window_s
 x2 = x2.view(B, H // window_size[0], window_size[0], W // window_size[0], window_size[0], C)
 w2 = x2.permute(0, 1, 3, 2, 4, 5).contiguous().view(-1, window_size[0], window_size[0], C)
 
+# %% 
