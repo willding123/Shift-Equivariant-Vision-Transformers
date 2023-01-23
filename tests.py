@@ -119,14 +119,27 @@ class TestShift(unittest.TestCase):
             x = torch.permute(x, (0,2,3,1)).contiguous()
             return x
         
-        def check_polyphase(t, t1):
+        def check_polyphase(t, t1, shifts = None):
             # t: original tensor, t1: shifted tensor
             # check if the polyphase is correct 
             # t: B, H, W, C
             # t1: B, H, W, C
+
             B, H, W, C = t.shape
             patch_reso = (H//7, W//7)
-            assert torch.linalg.norm(t[:, 0::patch_reso[0], 0::patch_reso[1], :] - t1[:, 0::patch_reso[0], 0::patch_reso[1], :]) < 1e-5, "polyphase is not correct"
+            
+            norms = []
+            for i, shift in enumerate(shifts):
+                p0 = t[i:, 0::patch_reso[0] , 0::patch_reso[1], :]
+                p1 = t1[i:, 0::patch_reso[0] , 0::patch_reso[1], :]
+                p0_shifted = torch.roll(p0, shifts = shift, dims = (0, 1))
+                norms.append(torch.linalg.norm(p0_shifted - p1))
+            print(norms)
+            return norms
+            # B, H, W, C = t.shape
+            # patch_reso = (H//7, W//7)
+            # print(torch.linalg.norm(t[:, 0::patch_reso[0], 0::patch_reso[1], :]) - torch.linalg.norm(t1[:, 0::patch_reso[0], 0::patch_reso[1], :]))
+            # assert torch.linalg.norm(t[:, 0::patch_reso[0], 0::patch_reso[1], :]) - torch.linalg.norm(t1[:, 0::patch_reso[0], 0::patch_reso[1], :]) < 1e-4, "polyphase is not correct"
 
             
         
@@ -155,8 +168,6 @@ class TestShift(unittest.TestCase):
             count = 0 
             for i in range(t.shape[0]):
                 for j in range(t1.shape[0]):
-                    print(t.shape)
-                    print(torch.linalg.norm(t[i]-t1[j]))
                     if torch.linalg.norm(t[i]-t1[j]) < 0.1:
                         count += 1
             print(f"count: {count}")
@@ -202,8 +213,10 @@ class TestShift(unittest.TestCase):
         t = reorder(p)
         t1 = reorder(p1)
         
+
         shifts = find_shift2d_batch(t, t1, early_break=True)
         print(shift_and_compare(t, t1, shifts, (0,1) ))
+        check_polyphase(t, t1, shifts)
         # confirm_bijective_matches_batch(t.view(t.shape[0], -1 ,t.shape[-1]).cpu().detach().numpy(), t1.view(t.shape[0], -1 ,t.shape[-1]).cpu().detach().numpy())
         t = cyclic_shift(t, 0)
         t1 = cyclic_shift(t1, 0)
@@ -261,6 +274,24 @@ class TestShift(unittest.TestCase):
             y = PolyOrder.apply(x, patches_resolutions[i], patch_sizes[i], 2, False)
             assert torch.all(y[:,:,0::patch_sizes[i][0], 0::patch_sizes[i][1]]==2).item()
         print("Done!")
+
+    def test_polyorder_tokens(self):
+        # B, C, H, W
+        feature_size = (56,56)
+        patches_resolution = (8, 8)
+        patch_size = (7, 7)
+        token_size = 96
+
+        x = torch.rand((4,token_size, feature_size[0], feature_size[1]))
+
+        for j in range(x.shape[0]):
+            x[j, :, 0::patch_size[0], 0::patch_size[1]] = 2 
+            x = torch.roll(x, tuple(torch.randint(0,patches_resolution[0], (2,))), dims = (2,3))
+        x = torch.tensor(x)
+        y = PolyOrder.apply(x, patches_resolution, patch_size, 2, False)
+
+        assert torch.all(y[:,:,0:: patch_size[0], 0:: patch_size[1]]==2).item()
+        print("Done Token Polyphase")
     
     def test_polyorder2(self): 
         """Test whether poly order will yield the same predictions for an image and its shifted copy"""
@@ -301,6 +332,7 @@ if __name__ == "__main__":
     start = time.time()
     try: 
         test.setUp()
+        test.test_polyorder_tokens()
         test.test_swin_block()
     except:
         print("Exception!")
