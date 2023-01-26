@@ -14,6 +14,7 @@ drop_rate = 0.0
 embed_dim = 1
 mlp_ratio = 4
 window_size = 7
+#%% 
 # test poly swin transformer block
 patch_embed = PolyPatch(input_resolution = img_size, patch_size = patch_size, in_chans = in_chans,
                 out_chans = embed_dim, norm_layer=None).cuda()
@@ -129,10 +130,10 @@ def reverse_cyclic_shift(attn_windows, shortcut, B, idx = 0):
         shifted_x = window_reverse(attn_windows, blk.window_size, H, W)  # B H' W' C
         x = shifted_x
     x = x.view(B, H * W, C)
-    x = shortcut + blk.drop_path(x)
+    # x = shortcut + blk.drop_path(x)
     return x
 
-
+#%%
 x = torch.rand((1,3,224,224)).cuda()
 B, C, H, W = x.shape
 # shifts = tuple(np.random.randint(0,32,2))
@@ -145,6 +146,7 @@ p1 = patch_embed(x1)
 print("reordering")
 t = reorder(p)
 t1 = reorder(p1)
+shortcut = t; shortcut1 = t1 
 shifts = find_shift2d_batch(t, t1, early_break=True)
 print(shift_and_compare(t, t1, shifts, (0,1) ))
 check_polyphase(t, t1, shifts)
@@ -155,8 +157,8 @@ check_window(t, t1)
 t = attention(t, 0)
 t1 = attention(t1, 0)
 check_window(t, t1)
-t = reverse_cyclic_shift(t, p, 1, 0)
-t1 = reverse_cyclic_shift(t1, p1, 1, 0)
+t = reverse_cyclic_shift(t, shortcut, 1, 0)
+t1 = reverse_cyclic_shift(t1, shortcut1, 1, 0)
 # confirm_bijective_matches_batch(t.cpu().detach().numpy(), t1.cpu().detach().numpy())
 
 # %%

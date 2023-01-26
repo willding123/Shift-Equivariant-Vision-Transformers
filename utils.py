@@ -37,7 +37,7 @@ def confirm_bijective_matches(y, y1):
         if matches:
             count += 1
         else: 
-            break 
+            break
     assert count  == y.shape[0]
 
 
