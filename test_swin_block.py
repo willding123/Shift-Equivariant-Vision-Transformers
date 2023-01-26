@@ -133,7 +133,13 @@ def reverse_cyclic_shift(attn_windows, shortcut, B, idx = 0):
     # x = shortcut + blk.drop_path(x)
     return x
 
+def mlp(x, idx = 0):
+    blk = blocks[idx]
+    x = blk.mlp(x) + x 
+    return x
+
 #%%
+# tests block l 
 x = torch.rand((1,3,224,224)).cuda()
 B, C, H, W = x.shape
 # shifts = tuple(np.random.randint(0,32,2))
@@ -159,6 +165,29 @@ t1 = attention(t1, 0)
 check_window(t, t1)
 t = reverse_cyclic_shift(t, shortcut, 1, 0)
 t1 = reverse_cyclic_shift(t1, shortcut1, 1, 0)
-# confirm_bijective_matches_batch(t.cpu().detach().numpy(), t1.cpu().detach().numpy())
+confirm_bijective_matches_batch(t.cpu().detach().numpy(), t1.cpu().detach().numpy())
+# MLP 
+t = mlp(t); t1 = mlp(t1)
+confirm_bijective_matches_batch(t.cpu().detach().numpy(), t1.cpu().detach().numpy())
 
 # %%
+# test block l+1 
+t = reorder(t)
+t1 = reorder(t1)
+shortcut = t; shortcut1 = t1 
+shifts = find_shift2d_batch(t, t1, early_break=True)
+print(shift_and_compare(t, t1, shifts, (0,1) ))
+check_polyphase(t, t1, shifts)
+t = cyclic_shift(t, 1)
+t1 = cyclic_shift(t1, 1)
+check_window(t, t1)
+
+#%%
+t = attention(t, 1)
+t1 = attention(t1, 1)
+check_window(t, t1)
+t = reverse_cyclic_shift(t, shortcut, 1, 1)
+t1 = reverse_cyclic_shift(t1, shortcut1, 1, 1)
+confirm_bijective_matches_batch(t.cpu().detach().numpy(), t1.cpu().detach().numpy())
+
+#%%
