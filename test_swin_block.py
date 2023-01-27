@@ -2,6 +2,12 @@
 from models.swin_transformer_poly import *
 from utils import * 
 import matplotlib.pyplot as plt 
+try:
+    import os, sys
+
+    kernel_path = os.path.abspath(os.path.join("."))
+    from kernels.window_process.window_process import WindowProcess, WindowProcessReverse
+
 
 #%% 
 img_size = (224, 224)
@@ -190,3 +196,24 @@ t1 = reverse_cyclic_shift(t1, shortcut1, 1, 1)
 confirm_bijective_matches_batch(t.cpu().detach().numpy(), t1.cpu().detach().numpy())
 print("Done")
 #%%
+
+blk = blocks[1]
+H, W = blk.input_resolution
+img_mask = torch.zeros((1, H, W, 1))  # 1 H W 1
+h_slices = (slice(0, -blk.window_size),
+            slice(-blk.window_size, -blk.shift_size),
+            slice(-blk.shift_size, None))
+w_slices = (slice(0, -blk.window_size),
+            slice(-blk.window_size, -blk.shift_size),
+            slice(-blk.shift_size, None))
+cnt = 0
+for h in h_slices:
+    for w in w_slices:
+        img_mask[:, h, w, :] = cnt
+        cnt += 1
+
+mask_windows = window_partition(img_mask, blk.window_size)  # nW, window_size, window_size, 1
+mask_windows = mask_windows.view(-1, blk.window_size * blk.window_size)
+attn_mask = mask_windows.unsqueeze(1) - mask_windows.unsqueeze(2)
+attn_mask = attn_mask.masked_fill(attn_mask != 0, float(-100.0)).masked_fill(attn_mask == 0, float(0.0))
+# %%
