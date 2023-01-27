@@ -232,6 +232,8 @@ class WindowAttention(nn.Module):
         if mask is not None:
             nW = mask.shape[0]
             attn = attn.view(B_ // nW, nW, self.num_heads, N, N) + mask.unsqueeze(1).unsqueeze(0)
+            print(mask.shape)
+            print(attn.shape)
             attn = attn.view(-1, self.num_heads, N, N)
             attn = self.softmax(attn)
         else:
@@ -340,7 +342,7 @@ class SwinTransformerBlock(nn.Module):
         B, L, C = x.shape
         assert L == H * W, "input feature has wrong size"
 
-        shortcut = x
+        # shortcut = x
         # x = self.norm1(x)
         # x = x.view(B, H, W, C)
 
@@ -349,6 +351,9 @@ class SwinTransformerBlock(nn.Module):
         # # rearrange x based on max polyphase 
         x =  PolyOrder.apply(x, self.grid_size, to_2tuple(self.window_size))
         x = torch.permute(x, (0,2,3,1)).contiguous()
+        shortcut = x
+
+
         # cyclic shift
         if self.shift_size > 0:
             if not self.fused_window_process:

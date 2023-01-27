@@ -1,6 +1,5 @@
 #%% 
 from models.swin_transformer_poly import *
-from models.swin_transformer import SwinTransformer, SwinTransformerBlock
 from utils import * 
 import matplotlib.pyplot as plt 
 
@@ -189,5 +188,5 @@ check_window(t, t1)
 t = reverse_cyclic_shift(t, shortcut, 1, 1)
 t1 = reverse_cyclic_shift(t1, shortcut1, 1, 1)
 confirm_bijective_matches_batch(t.cpu().detach().numpy(), t1.cpu().detach().numpy())
-
+print("Done")
 #%%
