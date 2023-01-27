@@ -2,14 +2,11 @@
 from models.swin_transformer_poly import *
 from utils import * 
 import matplotlib.pyplot as plt 
-try:
-    import os, sys
+import os, sys
+kernel_path = os.path.abspath(os.path.join("."))
+from kernels.window_process.window_process import WindowProcess, WindowProcessReverse
 
-    kernel_path = os.path.abspath(os.path.join("."))
-    from kernels.window_process.window_process import WindowProcess, WindowProcessReverse
-
-
-#%% 
+#%%
 img_size = (224, 224)
 patch_size = 16
 in_chans = 3
