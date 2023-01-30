@@ -309,29 +309,29 @@ class SwinTransformerBlock(nn.Module):
         mlp_hidden_dim = int(dim * mlp_ratio)
         self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop)
 
-        if self.shift_size > 0:
-            # calculate attention mask for SW-MSA
-            H, W = self.input_resolution
-            img_mask = torch.zeros((1, H, W, 1))  # 1 H W 1
-            h_slices = (slice(0, -self.window_size),
-                        slice(-self.window_size, -self.shift_size),
-                        slice(-self.shift_size, None))
-            w_slices = (slice(0, -self.window_size),
-                        slice(-self.window_size, -self.shift_size),
-                        slice(-self.shift_size, None))
-            cnt = 0
-            for h in h_slices:
-                for w in w_slices:
-                    img_mask[:, h, w, :] = cnt
-                    cnt += 1
+        # if self.shift_size > 0:
+        #     # calculate attention mask for SW-MSA
+        #     H, W = self.input_resolution
+        #     img_mask = torch.zeros((1, H, W, 1))  # 1 H W 1
+        #     h_slices = (slice(0, -self.window_size),
+        #                 slice(-self.window_size, -self.shift_size),
+        #                 slice(-self.shift_size, None))
+        #     w_slices = (slice(0, -self.window_size),
+        #                 slice(-self.window_size, -self.shift_size),
+        #                 slice(-self.shift_size, None))
+        #     cnt = 0
+        #     for h in h_slices:
+        #         for w in w_slices:
+        #             img_mask[:, h, w, :] = cnt
+        #             cnt += 1
 
-            mask_windows = window_partition(img_mask, self.window_size)  # nW, window_size, window_size, 1
-            mask_windows = mask_windows.view(-1, self.window_size * self.window_size)
-            attn_mask = mask_windows.unsqueeze(1) - mask_windows.unsqueeze(2)
-            attn_mask = attn_mask.masked_fill(attn_mask != 0, float(-100.0)).masked_fill(attn_mask == 0, float(0.0))
-        else:
-            attn_mask = None
-
+        #     mask_windows = window_partition(img_mask, self.window_size)  # nW, window_size, window_size, 1
+        #     mask_windows = mask_windows.view(-1, self.window_size * self.window_size)
+        #     attn_mask = mask_windows.unsqueeze(1) - mask_windows.unsqueeze(2)
+        #     attn_mask = attn_mask.masked_fill(attn_mask != 0, float(-100.0)).masked_fill(attn_mask == 0, float(0.0))
+        # else:
+        #     attn_mask = None
+        attn_mask = None
         self.register_buffer("attn_mask", attn_mask)
         self.fused_window_process = fused_window_process
 
@@ -345,11 +345,11 @@ class SwinTransformerBlock(nn.Module):
         # x = x.view(B, H, W, C)
 
         x = self.norm1(x)
-        x = torch.permute(x.view(B,H,W,C), (0,3,1,2))
+        x = torch.permute(x.view(B,H,W,C), (0,3,1,2)) # B,C,H,W
         # # rearrange x based on max polyphase 
         x =  PolyOrder.apply(x, self.grid_size, to_2tuple(self.window_size))
-        x = torch.permute(x, (0,2,3,1)).contiguous()
-        shortcut = x
+        x = torch.permute(x, (0,2,3,1)).contiguous() # B,H,W,C
+        shortcut = x.view(B,L,C)
 
 
         # cyclic shift

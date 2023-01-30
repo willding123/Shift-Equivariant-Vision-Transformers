@@ -6,20 +6,30 @@ import os, sys
 kernel_path = os.path.abspath(os.path.join("."))
 from kernels.window_process.window_process import WindowProcess, WindowProcessReverse
 
+np.random.seed(123)
+torch.manual_seed(123)
 #%%
 img_size = (224, 224)
-patch_size = 16
+patch_size = 4
 in_chans = 3
 norm_layer = nn.LayerNorm 
 patches_resolution = (img_size[0]//patch_size, img_size[1]//patch_size)
 drop_rate = 0.0 
-embed_dim = 1
+attn_drop_rate = 0.0
+embed_dim = 96
 mlp_ratio = 4
 window_size = 7
+depths = [2,2]
+drop_path_rate = 0.1
+num_heads = [3,6]
+qkv_bias=True 
+qk_scale=None
+use_checkpoint=False
+fused_window_process = True
 #%% 
 # test poly swin transformer block
 patch_embed = PolyPatch(input_resolution = img_size, patch_size = patch_size, in_chans = in_chans,
-                out_chans = embed_dim, norm_layer=None).cuda()
+                out_chans = embed_dim, norm_layer=norm_layer).cuda()
 pos_drop = nn.Dropout(p=drop_rate).cuda()
 blocks = nn.ModuleList([
     SwinTransformerBlock(dim=embed_dim, input_resolution=(patches_resolution[0], patches_resolution[1]),
@@ -32,6 +42,7 @@ blocks = nn.ModuleList([
                             norm_layer=norm_layer,
                             fused_window_process=True)
     for i in range(2)]).cuda()
+
 # self.model = nn.Sequential(patch_embed, pos_drop, blocks).cuda()
 
 def pred(x):
@@ -132,7 +143,7 @@ def reverse_cyclic_shift(attn_windows, shortcut, B, idx = 0):
         shifted_x = window_reverse(attn_windows, blk.window_size, H, W)  # B H' W' C
         x = shifted_x
     x = x.view(B, H * W, C)
-    # x = shortcut + blk.drop_path(x)
+    x = shortcut + blk.drop_path(x)
     return x
 
 def mlp(x, idx = 0):
@@ -140,21 +151,30 @@ def mlp(x, idx = 0):
     x = blk.mlp(x) + x 
     return x
 
+#%% 
+# test swin transformer block 
+x = torch.rand((1,3,224,224)).cuda()
+B, C, H, W = x.shape
+shifts = (30,13)
+x1 = torch.roll(x, shifts, (2,3)).cuda()
+t = pred(x)
+t1 = pred(x1)
+confirm_bijective_matches_batch(t.cpu().detach().numpy(), t1.cpu().detach().numpy())
+
 #%%
 # tests block l 
 x = torch.rand((1,3,224,224)).cuda()
 B, C, H, W = x.shape
 # shifts = tuple(np.random.randint(0,32,2))
-shifts = (37,43)
+shifts = (30,13)
 x1 = torch.roll(x, shifts, (2,3)).cuda()
-# poly swin output
 print("predicting")
 p = patch_embed(x)
 p1 = patch_embed(x1)
 print("reordering")
 t = reorder(p)
 t1 = reorder(p1)
-shortcut = t; shortcut1 = t1 
+shortcut = t.view(1, -1, embed_dim); shortcut1 = t1.view(1, -1, embed_dim) 
 shifts = find_shift2d_batch(t, t1, early_break=True)
 print(shift_and_compare(t, t1, shifts, (0,1) ))
 check_polyphase(t, t1, shifts)
@@ -168,49 +188,84 @@ check_window(t, t1)
 t = reverse_cyclic_shift(t, shortcut, 1, 0)
 t1 = reverse_cyclic_shift(t1, shortcut1, 1, 0)
 confirm_bijective_matches_batch(t.cpu().detach().numpy(), t1.cpu().detach().numpy())
-# MLP 
 t = mlp(t); t1 = mlp(t1)
 confirm_bijective_matches_batch(t.cpu().detach().numpy(), t1.cpu().detach().numpy())
-
-# %%
 # test block l+1 
 t = reorder(t)
 t1 = reorder(t1)
-shortcut = t; shortcut1 = t1 
+shortcut = t.view(1,-1,embed_dim); shortcut1 = t1.view(1,-1,embed_dim)
 shifts = find_shift2d_batch(t, t1, early_break=True)
 print(shift_and_compare(t, t1, shifts, (0,1) ))
 check_polyphase(t, t1, shifts)
 t = cyclic_shift(t, 1)
 t1 = cyclic_shift(t1, 1)
 check_window(t, t1)
-
-#%%
 t = attention(t, 1)
 t1 = attention(t1, 1)
 check_window(t, t1)
 t = reverse_cyclic_shift(t, shortcut, 1, 1)
 t1 = reverse_cyclic_shift(t1, shortcut1, 1, 1)
 confirm_bijective_matches_batch(t.cpu().detach().numpy(), t1.cpu().detach().numpy())
+t = mlp(t); t1 = mlp(t1)
+confirm_bijective_matches_batch(t.cpu().detach().numpy(), t1.cpu().detach().numpy())
 print("Done")
-#%%
+#%% 
+# test swin transformer stage - BasicLayer
+x = torch.rand((1,3,224,224)).cuda()
+B, C, H, W = x.shape
+shifts = (30,13)
+x1 = torch.roll(x, shifts, (2,3)).cuda()
+patch_embed = PolyPatch(input_resolution = img_size, patch_size = 4, in_chans = in_chans,
+                out_chans = 96, norm_layer=None).cuda()
+layer = BasicLayer(dim = 96, input_resolution= (56,56), depth=2, num_heads=3, window_size=7).cuda()
 
-blk = blocks[1]
-H, W = blk.input_resolution
-img_mask = torch.zeros((1, H, W, 1))  # 1 H W 1
-h_slices = (slice(0, -blk.window_size),
-            slice(-blk.window_size, -blk.shift_size),
-            slice(-blk.shift_size, None))
-w_slices = (slice(0, -blk.window_size),
-            slice(-blk.window_size, -blk.shift_size),
-            slice(-blk.shift_size, None))
-cnt = 0
-for h in h_slices:
-    for w in w_slices:
-        img_mask[:, h, w, :] = cnt
-        cnt += 1
+def pred_l(x):
+    x = patch_embed(x)
+    x = layer(x)
+    return x
 
-mask_windows = window_partition(img_mask, blk.window_size)  # nW, window_size, window_size, 1
-mask_windows = mask_windows.view(-1, blk.window_size * blk.window_size)
-attn_mask = mask_windows.unsqueeze(1) - mask_windows.unsqueeze(2)
-attn_mask = attn_mask.masked_fill(attn_mask != 0, float(-100.0)).masked_fill(attn_mask == 0, float(0.0))
-# %%
+t = pred_l(x)
+t1 = pred_l(x1)
+confirm_bijective_matches_batch(t.cpu().detach().numpy(), t1.cpu().detach().numpy())
+
+# %% 
+# test multi stage swin transformer  
+num_layers = 2
+dpr = [x.item() for x in torch.linspace(0, drop_path_rate, sum(depths))]  # stochastic depth decay rule
+layers = nn.ModuleList()
+for i_layer in range(num_layers):
+    layer = BasicLayer(dim=int(embed_dim * 2 ** i_layer),
+                        input_resolution=(patches_resolution[0] // (2 ** i_layer),
+                                            patches_resolution[1] // (2 ** i_layer)),
+                        depth=depths[i_layer],
+                        num_heads=num_heads[i_layer],
+                        window_size=window_size,
+                        mlp_ratio=mlp_ratio,
+                        qkv_bias=True, qk_scale=None,
+                        drop=drop_rate, attn_drop=attn_drop_rate,
+                        drop_path=dpr[sum(depths[:i_layer]):sum(depths[:i_layer + 1])],
+                        norm_layer=norm_layer,
+                        downsample=PolyPatch if (i_layer < num_layers - 1) else None,
+                        use_checkpoint=False,
+                        fused_window_process=fused_window_process)
+    layers.append(layer)
+layers = layers.cuda()
+def pred_ls(x):
+    x = patch_embed(x)
+    for layer in layers:
+        x = layer(x)
+    return x
+t = pred_ls(x)
+t1 = pred_ls(x1)
+confirm_bijective_matches_batch(t.cpu().detach().numpy(), t1.cpu().detach().numpy())
+
+#%% 
+# test swin model 
+model = PolySwin(img_size= img_size).cuda()
+model.eval()
+t = model(x)
+t1 = model(x1)
+confirm_bijective_matches_batch(t.cpu().detach().numpy(), t1.cpu().detach().numpy())
+
+# %% 
+
