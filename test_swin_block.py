@@ -39,7 +39,7 @@ blocks = nn.ModuleList([
                             qkv_bias=True, qk_scale=None,
                             drop=0.0, attn_drop=0.0,
                             drop_path=0,
-                            norm_layer=norm_layer,
+                            norm_layer=nn.Identity,
                             fused_window_process=True)
     for i in range(2)]).cuda()
 
