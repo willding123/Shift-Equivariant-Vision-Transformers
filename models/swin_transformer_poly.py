@@ -344,7 +344,6 @@ class SwinTransformerBlock(nn.Module):
         # x = self.norm1(x)
         # x = x.view(B, H, W, C)
 
-        x = self.norm1(x)
         x = torch.permute(x.view(B,H,W,C), (0,3,1,2)) # B,C,H,W
         # # rearrange x based on max polyphase 
         x =  PolyOrder.apply(x, self.grid_size, to_2tuple(self.window_size))
@@ -373,6 +372,9 @@ class SwinTransformerBlock(nn.Module):
         # merge windows
         attn_windows = attn_windows.view(-1, self.window_size, self.window_size, C)
 
+        # layer normalization
+        attn_windows = self.norm1(attn_windows)
+
         # reverse cyclic shift
         if self.shift_size > 0:
             if not self.fused_window_process:
@@ -387,7 +389,10 @@ class SwinTransformerBlock(nn.Module):
         x = shortcut + self.drop_path(x)
 
         # FFN
-        x = x + self.drop_path(self.mlp(self.norm2(x)))
+        # x = x + self.drop_path(self.mlp(self.norm2(x)))
+
+        # post norm 
+        x = x + self.drop_path(self.norm2(self.mlp(x)))
 
         return x
 
