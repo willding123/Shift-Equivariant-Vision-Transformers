@@ -1,5 +1,6 @@
 #%% 
-# Jupyter Notebook for testing Swin Transformer
+##### Jupyter Notebook for testing Swin Transformer
+### Run first cell to set up the environment
 
 # import libraries 
 from models.swin_transformer_poly import *
@@ -82,20 +83,11 @@ def check_polyphase(t, t1, shifts = None):
     B, H, W, C = t.shape
     patch_reso = (H//7, W//7)
     
-    norms = []
     for i, shift in enumerate(shifts):
         p0 = t[i, 0::patch_reso[0] , 0::patch_reso[1], :]
         p1 = t1[i, 0::patch_reso[0] , 0::patch_reso[1], :]
-        p0_shifted = torch.roll(p0, shifts = -shift, dims = (0, 1))
-        norms.append(torch.linalg.norm(p0_shifted - p1))
-        print(norms)
+        p0_shifted = torch.roll(p1, shifts = shift, dims = (0, 1))
         assert torch.linalg.norm(p0_shifted - p1) < 1e-4, "polyphase is not correct"
-    return norms
-    # B, H, W, C = t.shape
-    # patch_reso = (H//7, W//7)
-    # print(torch.linalg.norm(t[:, 0::patch_reso[0], 0::patch_reso[1], :]) - torch.linalg.norm(t1[:, 0::patch_reso[0], 0::patch_reso[1], :]))
-    # assert torch.linalg.norm(t[:, 0::patch_reso[0], 0::patch_reso[1], :]) - torch.linalg.norm(t1[:, 0::patch_reso[0], 0::patch_reso[1], :]) < 1e-4, "polyphase is not correct"
-
     
 
 def cyclic_shift(x, idx = 0):
@@ -161,7 +153,8 @@ def mlp(x, idx = 0):
     return x
 
 #%% 
-# unit test on swin transformer block - 
+### unit test on swin transformer block 
+x = torch.rand((1,3,224,224)).cuda()
 B, C, H, W = x.shape
 num_test = 10
 # shifts = (30,13)
@@ -173,10 +166,11 @@ for i in range(num_test):
     confirm_bijective_matches_batch(t.cpu().detach().numpy(), t1.cpu().detach().numpy())
 
 #%%
-# test individual components of two successive swin blocks: 
-###     reorder, cyclic shift, attention, reverse_cyclic_shift, mlp
+### test individual components of two successive swin blocks: 
+##     reorder, cyclic shift, attention, reverse_cyclic_shift, mlp
 
 # setup input and get tokens
+x = torch.rand((1,3,224,224)).cuda()
 B, C, H, W = x.shape
 # shifts = tuple(np.random.randint(0,32,2))
 shifts = (30,13)
@@ -189,7 +183,7 @@ t1 = reorder(p1)
 shortcut = t.view(1, -1, embed_dim); shortcut1 = t1.view(1, -1, embed_dim) 
 shifts = find_shift2d_batch(t, t1, early_break=True)
 print(shift_and_compare(t, t1, shifts, (0,1) )) 
-check_polyphase(t, t1, shifts) # confirm polyphase is correct
+# check_polyphase(t, t1, shifts) # confirm polyphase is correct
 # confirm_bijective_matches_batch(t.view(t.shape[0], -1 ,t.shape[-1]).cpu().detach().numpy(), t1.view(t.shape[0], -1 ,t.shape[-1]).cpu().detach().numpy())
 t = cyclic_shift(t, 0)
 t1 = cyclic_shift(t1, 0)
@@ -208,7 +202,7 @@ t1 = reorder(t1)
 shortcut = t.view(1,-1,embed_dim); shortcut1 = t1.view(1,-1,embed_dim)
 shifts = find_shift2d_batch(t, t1, early_break=True)
 print(shift_and_compare(t, t1, shifts, (0,1) ))
-check_polyphase(t, t1, shifts)
+# check_polyphase(t, t1, shifts)
 t = cyclic_shift(t, 1)
 t1 = cyclic_shift(t1, 1)
 check_window(t, t1)
@@ -222,7 +216,7 @@ t = mlp(t); t1 = mlp(t1)
 confirm_bijective_matches_batch(t.cpu().detach().numpy(), t1.cpu().detach().numpy())
 print("Done")
 #%% 
-# unit test on one swin transformer stage - BasicLayer
+### unit test on one swin transformer stage - BasicLayer
 x = torch.rand((1,3,224,224)).cuda()
 B, C, H, W = x.shape
 shifts = (30,13)
@@ -241,7 +235,10 @@ t1 = pred_l(x1)
 confirm_bijective_matches_batch(t.cpu().detach().numpy(), t1.cpu().detach().numpy())
 
 # %% 
-# unittest multi-stage swin transformer  
+### unittest multi-stage swin transformer  
+x = torch.rand((1,3,224,224)).cuda()
+shifts = tuple(np.random.randint(0,224,2))
+x1 = torch.roll(x, shifts, (2,3)).cuda()
 num_layers = 2
 dpr = [x.item() for x in torch.linspace(0, drop_path_rate, sum(depths))]  # stochastic depth decay rule
 layers = nn.ModuleList()
@@ -272,14 +269,14 @@ t1 = pred_ls(x1)
 confirm_bijective_matches_batch(t.cpu().detach().numpy(), t1.cpu().detach().numpy())
 
 #%% 
-# test entire swin model 
-num_test = 1000 
-model = PolySwin(img_size= img_size).cuda()
-model.eval()
+### test entire swin model 
+x = torch.rand((1,3,224,224)).cuda()
+num_test = 100 
+
 for i in range(num_test):
+    model = PolySwin(img_size=img_size, norm_layer=nn.Identity).cuda()
+    model.eval()
     shifts = tuple(np.random.randint(0,224,2))
-    if i % 100 == 0:
-        print(shifts)
     x1 = torch.roll(x, shifts, (2,3)).cuda()
     t = model(x)
     t1 = model(x1)

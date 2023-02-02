@@ -2,7 +2,7 @@ DATA:
   DATASET: imagenet #imagenet22K
 MODEL:
   TYPE: swin_poly
-  NAME: swin_tiny_patch4_window7_224_22k
+  NAME: swin_tiny_patch4_window7_1k_poly_0201
   DROP_PATH_RATE: 0.1
   SWIN:
     EMBED_DIM: 96
