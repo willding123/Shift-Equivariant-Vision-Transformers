@@ -18,8 +18,8 @@ def process(dir_path, file_name, acc_ls):
 acc_ls = []
 waitlist = []
 # directory where the log_rank files are located
-# dir_path = "/fs/nexus-scratch/pding/output/swin_tiny_patch4_window7_1k_poly/default"
-dir_path = "/fs/nexus-projects/shift-equivariant_vision_transformer/swin_tiny_patch4_window7_224_22k/default"
+# dir_path = "/fs/nexus-scratch/pding/output/swin_tiny_patch4_window7_1k_default/default"
+dir_path = "/fs/nexus-projects/shift-equivariant_vision_transformer/poly_swin_tiny_patch4_window7_1k_0202/default"
 
 i = 0
 # iterate through the files in the directory
