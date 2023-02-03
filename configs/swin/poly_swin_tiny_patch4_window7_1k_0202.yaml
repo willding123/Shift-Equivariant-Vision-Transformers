@@ -2,7 +2,7 @@ DATA:
   DATASET: imagenet #imagenet22K
 MODEL:
   TYPE: swin_poly
-  NAME: swin_tiny_patch4_window7_1k_poly_0201
+  NAME: poly_swin_tiny_patch4_window7_1k_0202
   DROP_PATH_RATE: 0.1
   SWIN:
     EMBED_DIM: 96
@@ -13,6 +13,6 @@ TRAIN:
   EPOCHS: 300
   WARMUP_EPOCHS: 5
   WEIGHT_DECAY: 0.05
-  BASE_LR: 1.25e-4 # 4096 batch-size
+  BASE_LR: 5e-5 # 4096 batch-size
   WARMUP_LR: 1.25e-7
   MIN_LR: 1.25e-6
