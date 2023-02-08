@@ -163,7 +163,7 @@ def main(config):
         logger.info(f"Accuracy of the network on the {len(dataset_val)} test images: {acc1:.1f}%")
         max_accuracy = max(max_accuracy, acc1)
         logger.info(f'Max accuracy: {max_accuracy:.2f}%')
-        wandb.log({"test accuracy": acc1, "max accuracy": max_accuracy})
+        wandb.log({"test accuracy": acc1, "max accuracy": max_accuracy, "test loss": loss, "test_epoch": epoch})
 
 
     total_time = time.time() - start_time
@@ -243,7 +243,7 @@ def train_one_epoch(config, model, criterion, data_loader, optimizer, epoch, mix
                 f'grad_norm {norm_meter.val:.4f} ({norm_meter.avg:.4f})\t'
                 f'loss_scale {scaler_meter.val:.4f} ({scaler_meter.avg:.4f})\t'
                 f'mem {memory_used:.0f}MB')
-            wandb.log({"time": batch_time.val, "loss": loss_meter.val, "grad_norm": norm_meter.val, "loss_scale":scaler_meter.val, "mem":memory_used})
+            wandb.log({"time": batch_time.val, "loss": loss_meter.val, "grad_norm": norm_meter.val, "loss_scale":scaler_meter.val, "mem":memory_used, "train_step": epoch*num_steps + idx, "train_epoch": epoch})
 
     epoch_time = time.time() - start
     logger.info(f"EPOCH {epoch} training takes {datetime.timedelta(seconds=int(epoch_time))}")
