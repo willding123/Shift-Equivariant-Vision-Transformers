@@ -1,4 +1,3 @@
-JOB_NAME="swin_020307"
 #!/bin/bash
 # bash script for single node gpu training 
 #SBATCH --account=scavenger
@@ -8,11 +7,11 @@ JOB_NAME="swin_020307"
 #SBATCH --ntasks-per-node=4
 #SBATCH --gpus-per-task=1
 #SBATCH --time=2-00:00:00  
-#SBATCH --job-name=$JOB_NAME
-#SBATCH --output=$JOB_NAME.out
-#SBATCH --error=$JOB_NAME.err
+#SBATCH --job-name=swin_020307_multi
+#SBATCH --output=swin_020307_multi.out
+#SBATCH --error=swin_020307_multi.err
 ##SBATCH --cpus-per-task=32
-#SBATCH --mem=128
+#SBATCH --mem=128G
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=pding@umd.edu
 nodes=($(scontrol show hostnames $SLURM_JOB_NODELIST))
@@ -25,6 +24,6 @@ source ~/miniconda3/bin/activate
 conda activate swin 
 cd /fs/nexus-projects/shift-equivariant_vision_transformer/Swin-Transformer
 nvidia-smi
-torchrun --nnodes 8 --nproc_per_node 1 rdzv_id=12345 --rdzv_backend=c10d --rdzv_endpoint=$head_node_ip-ip:29500  main.py --cfg configs/swin/poly_swin_tiny_0203.yaml --data-path /fs/cml-datasets/ImageNet/ILSVRC2012 --batch-size 128 --output /fs/nexus-projects/shift-equivariant_vision_transformer --fused_window_process 
+srun torchrun --nnodes 2 --nproc_per_node 4 rdzv_id=$JOB_ID --rdzv_backend=c10d --rdzv_endpoint=$head_node_ip-ip:29512  main.py --cfg configs/swin/poly_swin_tiny_0203.yaml --data-path /fs/cml-datasets/ImageNet/ILSVRC2012 --batch-size 512 --output /fs/nexus-projects/shift-equivariant_vision_transformer --fused_window_process 
 
 # torchrun  --nproc_per_node 8  main.py --cfg configs/swin/poly_swin_tiny_0203.yaml --data-path /fs/cml-datasets/ImageNet/ILSVRC2012 --batch-size 512 --output /fs/nexus-projects/shift-equivariant_vision_transformer --fused_window_process 
