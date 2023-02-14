@@ -139,3 +139,6 @@ wandb/
 
 # models caceh 
 model/__pycache__/
+
+# Ignore out files
+*.out
