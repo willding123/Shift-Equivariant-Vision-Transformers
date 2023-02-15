@@ -20,4 +20,4 @@ source ~/miniconda3/bin/activate
 conda activate swin 
 cd /fs/nexus-projects/shift-equivariant_vision_transformer/Swin-Transformer
 # torchrun  --nproc_per_node 8  main.py --cfg configs/swin/poly_swin_tiny_0204.yaml --data-path /fs/cml-datasets/ImageNet/ILSVRC2012 --batch-size 128 --output /fs/nexus-projects/shift-equivariant_vision_transformer --fused_window_process 
- torchrun  --nproc_per_node 4  main.py --cfg configs/swin/poly_swin_tiny_0207.yaml --data-path /fs/cml-datasets/ImageNet/ILSVRC2012 --batch-size 128 --output /fs/nexus-projects/shift-equivariant_vision_transformer --fused_window_process 
+torchrun  --nproc_per_node 4  main.py --cfg configs/swin/poly_swin_tiny_0207.yaml --data-path /fs/cml-datasets/ImageNet/ILSVRC2012 --batch-size 128 --output /fs/nexus-projects/shift-equivariant_vision_transformer --fused_window_process 
