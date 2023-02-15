@@ -44,6 +44,15 @@ class PolyOrder(torch.autograd.Function):
         return grad_out,None, None, None, None, None, None, None
 
 
+class PolyOrderModule(nn.Module):
+    def __init__(self, grid_size, patch_size, norm =2, use_gpu = True):
+        super().__init__()
+        self.grid_size = grid_size
+        self.patch_size = patch_size
+        self.norm = norm
+        self.use_gpu = use_gpu
+    def forward(self, x):
+        return PolyOrder.apply(x, self.grid_size, self.patch_size, self.norm, self.use_gpu)
 
 class PolyPatch(nn.Module): 
     r""" PolyPatch Layer: 

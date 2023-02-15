@@ -3,8 +3,8 @@ import torch
 from models.vision_transformer import * 
 import numpy as np 
 from timm.models.layers import PatchEmbed, Mlp, DropPath, trunc_normal_, lecun_normal_
-
-
+import timm
+from models.poly_utils import *
 #%% 
 x = torch.rand((1,3,224,224)).cuda()
 num_test = 1000
@@ -24,4 +24,13 @@ for i in range(num_test):
         print(torch.argmax(t1).item())
         break
 print("Done")
+# %%
+x = torch.rand((1,3,224,224)).cuda()
+model = timm.models.vision_transformer.vit_tiny_patch16_224(pretrained=True)
+model = nn.Sequential(
+PolyOrderModule(grid_size=(14,14), patch_size=(16,16)),
+model).cuda()
+model.eval()
+model(x)
+
 # %%
