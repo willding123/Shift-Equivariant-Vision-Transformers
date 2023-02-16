@@ -4,7 +4,7 @@
 # Licensed under The MIT License [see LICENSE for details]
 # Written by Ze Liu
 # --------------------------------------------------------
-
+import torch 
 from .swin_transformer import SwinTransformer
 from .swin_transformer_v2 import SwinTransformerV2
 from .swin_transformer_moe import SwinTransformerMoE
@@ -12,7 +12,7 @@ from .swin_transformer_poly import PolySwin
 from .swin_mlp import SwinMLP
 from .simmim import build_simmim
 import timm 
-
+from .poly_utils import *
 
 def build_model(config, is_pretrain=False):
     model_type = config.MODEL.TYPE
@@ -137,7 +137,10 @@ def build_model(config, is_pretrain=False):
                             use_checkpoint=config.TRAIN.USE_CHECKPOINT,
                             fused_window_process=config.FUSED_WINDOW_PROCESS)
     elif model_type == "vit_poly":
-        model = 
+        model = timm.models.vision_transformer.vit_tiny_patch16_224(pretrained=True)
+        model = nn.Sequential(
+        PolyOrderModule(grid_size=(14,14), patch_size=(16,16)),
+        model)
     else:
         raise NotImplementedError(f"Unkown model: {model_type}")
 

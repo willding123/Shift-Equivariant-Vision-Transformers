@@ -1,6 +1,6 @@
 # patch size 4 and window size 7
 MODEL:
-  TYPE: swin
+  TYPE: swin_poly
   NAME: poly_swin_tiny_0203
   DROP_PATH_RATE: 0.2
   SWIN:
