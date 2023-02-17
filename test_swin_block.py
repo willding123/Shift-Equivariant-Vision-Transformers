@@ -275,7 +275,7 @@ num_test = 1000
 model = PolySwin(img_size=img_size, norm_layer=nn.Identity).cuda()
 model.eval()
 for i in range(num_test):
-    shifts = tuple(np.random.randint(0,14,2))
+    shifts = tuple(np.random.randint(0,111,2))
     x1 = torch.roll(x, shifts, (2,3)).cuda()
     t = model(x)
     t1 = model(x1)
