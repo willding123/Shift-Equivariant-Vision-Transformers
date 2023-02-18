@@ -34,6 +34,7 @@ class PolyOrder(torch.autograd.Function):
     
     @staticmethod
     def backward(ctx,grad_in):
+        print(grad_in)
         theta = ctx.theta
         l = ctx.l;  H = ctx.H;  W =ctx.W; B = ctx.B ; C = ctx.C
         grad_in = pad(grad_in, (l,0,l,0) ,"circular").float()
@@ -41,6 +42,7 @@ class PolyOrder(torch.autograd.Function):
         grid = affine_grid(theta, (B,C,grad_in.shape[2], grad_in.shape[3]), align_corners= False)
         grad_out = grid_sample(grad_in, grid, "nearest", align_corners= False)
         grad_out = crop(grad_out, 0, 0, H, W)
+        print(grad_out)
         return grad_out,None, None, None, None, None, None, None
 
 

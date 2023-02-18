@@ -1,0 +1,16 @@
+# patch size 4 and window size 7
+MODEL:
+  TYPE: swin_poly
+  NAME: poly_swin_tiny_0216_wm8
+  DROP_PATH_RATE: 0.2
+  SWIN:
+    EMBED_DIM: 96
+    DEPTHS: [ 2, 2, 6, 2 ]
+    NUM_HEADS: [ 3, 6, 12, 24 ]
+    WINDOW_SIZE: 7
+DATA:
+  BATCH_SIZE: 128
+  NUM_WORKERS: 8
+TRAIN:
+  WARMUP_EPOCHS: 10
+  WARMUP_LR: 1e-8
