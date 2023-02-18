@@ -1,0 +1,7 @@
+# patch size 4 and window size 7
+MODEL:
+  TYPE: vit_poly
+  NAME: poly_vit_tiny_0216
+DATA:
+  BATCH_SIZE: 128
+  NUM_WORKERS: 24

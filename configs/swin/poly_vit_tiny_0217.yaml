@@ -1,0 +1,6 @@
+MODEL:
+  TYPE: vit_poly
+  NAME: poly_vit_tiny_0217
+DATA:
+  BATCH_SIZE: 128
+  NUM_WORKERS: 24

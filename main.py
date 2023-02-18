@@ -85,7 +85,10 @@ def parse_option():
 @record
 def main(config):
     # wandb.init(config=config, group="DDP")
-    wandb.init(config = config, project="test-project", entity="swin-transformer-poly", group = "William")
+    if config.LOCAL_RANK == 0:
+        run = wandb.init(config = config, project="test-project", entity="swin-transformer-poly", group = "William")
+    else:
+        run = None
     dataset_train, dataset_val, data_loader_train, data_loader_val, mixup_fn = build_loader(config)
     logger.info(f"Creating model:{config.MODEL.TYPE}/{config.MODEL.NAME}")
     model = build_model(config)
@@ -101,7 +104,7 @@ def main(config):
 
     optimizer = build_optimizer(config, model)
     model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[config.LOCAL_RANK], broadcast_buffers=False)
-    wandb.watch(model, log_freq=100)
+    run.watch(model, log_freq=100)
     loss_scaler = NativeScalerWithGradNormCount()
 
     if config.TRAIN.ACCUMULATION_STEPS > 1:
@@ -153,7 +156,7 @@ def main(config):
     for epoch in range(config.TRAIN.START_EPOCH, config.TRAIN.EPOCHS):
         data_loader_train.sampler.set_epoch(epoch)
         train_one_epoch(config, model, criterion, data_loader_train, optimizer, epoch, mixup_fn, lr_scheduler,
-                        loss_scaler)
+                        loss_scaler, run)
         if dist.get_rank() == 0 and (epoch % config.SAVE_FREQ == 0 or epoch == (config.TRAIN.EPOCHS - 1)):
         # if  (epoch % config.SAVE_FREQ == 0 or epoch == (config.TRAIN.EPOCHS - 1)):
             save_checkpoint(config, epoch, model_without_ddp, max_accuracy, optimizer, lr_scheduler, loss_scaler,
@@ -163,16 +166,18 @@ def main(config):
         logger.info(f"Accuracy of the network on the {len(dataset_val)} test images: {acc1:.1f}%")
         max_accuracy = max(max_accuracy, acc1)
         logger.info(f'Max accuracy: {max_accuracy:.2f}%')
-        wandb.log({"test accuracy": acc1, "max accuracy": max_accuracy, "test loss": loss, "test_epoch": epoch})
+        if run is not None:
+            run.log({"test accuracy": acc1, "max accuracy": max_accuracy, "test loss": loss, "test_epoch": epoch})
 
 
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
     logger.info('Training time {}'.format(total_time_str))
-    wandb.finish()
+    if run is not None:
+        run.finish()
 
 
-def train_one_epoch(config, model, criterion, data_loader, optimizer, epoch, mixup_fn, lr_scheduler, loss_scaler):
+def train_one_epoch(config, model, criterion, data_loader, optimizer, epoch, mixup_fn, lr_scheduler, loss_scaler, run = None):
     model.train()
     optimizer.zero_grad()
 
@@ -243,7 +248,8 @@ def train_one_epoch(config, model, criterion, data_loader, optimizer, epoch, mix
                 f'grad_norm {norm_meter.val:.4f} ({norm_meter.avg:.4f})\t'
                 f'loss_scale {scaler_meter.val:.4f} ({scaler_meter.avg:.4f})\t'
                 f'mem {memory_used:.0f}MB')
-            wandb.log({"time": batch_time.val, "loss": loss_meter.val, "grad_norm": norm_meter.val, "loss_scale":scaler_meter.val, "mem":memory_used, "train_step": epoch*num_steps + idx, "train_epoch": epoch})
+            if run is not None:
+                run.log({"time": batch_time.val, "loss": loss_meter.val, "grad_norm": norm_meter.val, "loss_scale":scaler_meter.val, "mem":memory_used, "train_step": epoch*num_steps + idx, "train_epoch": epoch})
 
     epoch_time = time.time() - start
     logger.info(f"EPOCH {epoch} training takes {datetime.timedelta(seconds=int(epoch_time))}")
