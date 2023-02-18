@@ -97,4 +97,22 @@ class PolyPatch(nn.Module):
         return flops        
         
     
-      
+def copy_model_weights(swin_model: torch.nn.Module, swin_poly_model: torch.nn.Module) -> torch.nn.Module:
+    # loop only over swin_poly_model keys
+    weights_copied = 0
+    for k, v in swin_poly_model.state_dict().items():
+        if k in swin_model.state_dict().keys():
+            # if shapes match
+            if v.shape == swin_model.state_dict()[k].shape:
+                # if the key is in swin_model_keys, copy the weights
+                swin_poly_model.state_dict()[k].copy_(swin_model.state_dict()[k])
+                weights_copied += 1
+                if k == "patch_embed.proj.weight":
+                    print("k: {}".format(k))
+                    print("Weights in swin_model")
+                    print(swin_model.state_dict()[k])
+                    print("Weights in swin_poly_model")
+                    print(swin_poly_model.state_dict()[k])
+
+    print("weights_copied: {}".format(weights_copied))
+    return swin_poly_model
