@@ -1,16 +1,16 @@
 #!/bin/bash
 # bash script for single node gpu training 
-#SBATCH --account=scavenger
-#SBATCH --partition=scavenger
-#SBATCH --qos=scavenger
-##SBATCH --qos=high
-##SBATCH --exclusive
-#SBATCH --gres=gpu:8
+##SBATCH --account=scavenger
+##SBATCH --partition=scavenger
+##SBATCH --qos=scavenger
+#SBATCH --qos=high
+#SBATCH --exclusive
+#SBATCH --gres=gpu:4
 #SBATCH --time=1-00:00:00  
-#SBATCH --job-name=vit_0217
-#SBATCH --output=vit_0217.out
-#SBATCH --error=vit_0217.err
-#SBATCH --mem=128G
+#SBATCH --job-name=prepoly_0219
+#SBATCH --output=prepoly_0219.out
+#SBATCH --error=prepoly_0219.err
+#SBATCH --mem=64G
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=pding@umd.edu
 
@@ -24,4 +24,7 @@ cd /fs/nexus-projects/shift-equivariant_vision_transformer/Swin-Transformer
 
 
 # ViT
-torchrun  --nproc_per_node 8  main.py --cfg configs/swin/poly_vit_tiny_0217.yaml --data-path /fs/cml-datasets/ImageNet/ILSVRC2012 --output /fs/nexus-projects/shift-equivariant_vision_transformer 
+# torchrun  --nproc_per_node 4  main.py --cfg configs/swin/poly_vit_tiny_0217.yaml --data-path /fs/cml-datasets/ImageNet/ILSVRC2012 --output /fs/nexus-projects/shift-equivariant_vision_transformer 
+
+# Pretrained poly
+torchrun  --nproc_per_node 4  main.py --cfg configs/swin/pretrained_swin_tiny_0219.yaml --data-path /fs/cml-datasets/ImageNet/ILSVRC2012 --output /fs/nexus-projects/shift-equivariant_vision_transformer 

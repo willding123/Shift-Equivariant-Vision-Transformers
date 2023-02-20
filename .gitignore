@@ -142,3 +142,6 @@ model/__pycache__/
 
 # Ignore out files
 *.out
+
+# Ignore model weights
+*.pth

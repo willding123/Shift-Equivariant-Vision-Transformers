@@ -104,7 +104,8 @@ def main(config):
 
     optimizer = build_optimizer(config, model)
     model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[config.LOCAL_RANK], broadcast_buffers=False)
-    run.watch(model, log_freq=100)
+    if run is not None:
+        run.watch(model, log_freq=100)
     loss_scaler = NativeScalerWithGradNormCount()
 
     if config.TRAIN.ACCUMULATION_STEPS > 1:

@@ -146,4 +146,8 @@ def test_copied_model( swin_poly_model: torch.nn.Module, swin_model: torch.nn.Mo
 
 test_copied_model(swin_poly_model, swin_model)
 # %%
+from models.poly_utils import copy_model_weights
+swin_poly_model = copy_model_weights(swin_model, swin_poly_model, embed_only=True)
 
+
+# %%
