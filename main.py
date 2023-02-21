@@ -145,7 +145,7 @@ def main(config):
             return
 
     if config.MODEL.PRETRAINED and (not config.MODEL.RESUME):
-        load_pretrained(config, model_without_ddp, logger)
+        # load_pretrained(config, model_without_ddp, logger) #FIXME control some other way
         acc1, acc5, loss = validate(config, data_loader_val, model)
         logger.info(f"Accuracy of the network on the {len(dataset_val)} test images: {acc1:.1f}%")
         run.log({"Initial Accuracy": acc1, "Initial Loss": loss})
