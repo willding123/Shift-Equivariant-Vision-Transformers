@@ -5,6 +5,7 @@ __pycache__/
 
 # launch bash
 #*.sh
+zara.sh
 # nsight system report files
 *.nsys-rep
 *.sqlite
