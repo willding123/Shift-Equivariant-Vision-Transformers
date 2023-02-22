@@ -146,6 +146,14 @@ def main(config):
         load_pretrained(config, model_without_ddp, logger)
         acc1, acc5, loss = validate(config, data_loader_val, model)
         logger.info(f"Accuracy of the network on the {len(dataset_val)} test images: {acc1:.1f}%")
+        if run is not None:
+            run.log({"test accuracy": acc1, "max accuracy": acc1, "test loss": loss, "test_epoch": -1})
+
+    if config.MODEL.START_EVAL:
+        acc1, acc5, loss = validate(config, data_loader_val, model)
+        logger.info(f"Accuracy of the network on the {len(dataset_val)} test images: {acc1:.1f}%")
+        if run is not None:
+            run.log({"test accuracy": acc1, "max accuracy": acc1, "test loss": loss, "test_epoch": -1})
 
     if config.THROUGHPUT_MODE:
         throughput(data_loader_val, model, logger)
