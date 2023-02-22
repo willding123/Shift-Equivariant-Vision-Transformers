@@ -141,6 +141,12 @@ def build_model(config, is_pretrain=False):
         model = nn.Sequential(
         PolyOrderModule(grid_size=(14,14), patch_size=(16,16)),
         model)
+    elif model_type == "vit_poly_untrained":
+        model = timm.models.vision_transformer.vit_tiny_patch16_224(pretrained=False)
+        model = nn.Sequential(
+        PolyOrderModule(grid_size=(14,14), patch_size=(16,16)),
+        model)
+            
     elif model_type == "vit":
         model = timm.models.vision_transformer.vit_tiny_patch16_224(pretrained=True)
         

@@ -179,8 +179,8 @@ def main(config):
         logger.info(f'Max accuracy: {max_accuracy:.2f}%')
         if run is not None:
             wandb.summary["MaxAccuracy"] = max_accuracy
-            run.log({"Accuracy": acc1, "Loss": loss, "Top5 Accuracy": acc5, "Max Accuracy": max_accuracy, "test_epoch": epoch})
-
+            # run.log({"Accuracy": acc1, "Loss": loss, "Top5 Accuracy": acc5, "Max Accuracy": max_accuracy, "test_epoch": epoch})
+            run.log({"test_accuracy": acc1, "test_loss": loss, "test_top5_accuracy": acc5, "test_epoch": epoch, 'test_max_accuracy': max_accuracy})
 
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
