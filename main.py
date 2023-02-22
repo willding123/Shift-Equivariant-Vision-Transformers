@@ -141,7 +141,7 @@ def main(config):
         acc1, acc5, loss = validate(config, data_loader_val, model)
         logger.info(f"Accuracy of the network on the {len(dataset_val)} test images: {acc1:.1f}%")
         if run is not None:
-            run.log({"Initial Accuracy": acc1, "Initial Loss": loss})
+            run.log({"Initial Accuracy": acc1, "Initial Loss": loss, "Initial Top5 Accuracy": acc5})
         if config.EVAL_MODE:
             return
 
@@ -154,6 +154,7 @@ def main(config):
             # wandb summary
             wandb.run.summary["InitialAccuracy"] = acc1
             wandb.run.summary["InitialLoss"] = loss
+            wandb.run.summary["InitialTop5Accuracy"] = acc5
             
         
 
@@ -177,8 +178,8 @@ def main(config):
         max_accuracy = max(max_accuracy, acc1)
         logger.info(f'Max accuracy: {max_accuracy:.2f}%')
         if run is not None:
-            wandb.run.summary["InitialAccuracy"] = acc1
-            wandb.run.summary["InitialLoss"] = loss
+            wandb.summary["MaxAccuracy"] = max_accuracy
+            run.log({"Accuracy": acc1, "Loss": loss, "Top5 Accuracy": acc5, "Max Accuracy": max_accuracy, "test_epoch": epoch})
 
 
     total_time = time.time() - start_time
@@ -260,7 +261,7 @@ def train_one_epoch(config, model, criterion, data_loader, optimizer, epoch, mix
                 f'loss_scale {scaler_meter.val:.4f} ({scaler_meter.avg:.4f})\t'
                 f'mem {memory_used:.0f}MB')
             if run is not None:
-                run.log({"time": batch_time.val, "loss": loss_meter.val, "grad_norm": norm_meter.val, "loss_scale":scaler_meter.val, "mem":memory_used, "train_step": epoch*num_steps + idx, "train_epoch": epoch})
+                run.log({"time": batch_time.val, "loss": loss_meter.val, "grad_norm": norm_meter.val, "loss_scale":scaler_meter.val, "mem":memory_used, "train_step": epoch*num_steps + idx, "train_epoch": epoch, "lr": lr, "wd": wd})
 
     epoch_time = time.time() - start
     logger.info(f"EPOCH {epoch} training takes {datetime.timedelta(seconds=int(epoch_time))}")

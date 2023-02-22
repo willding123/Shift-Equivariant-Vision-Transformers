@@ -1,0 +1,11 @@
+MODEL:
+  TYPE: vit_poly
+  NAME: poly_vit_tiny_0222
+  PRETRAINED: "model"
+DATA:
+  BATCH_SIZE: 164
+  NUM_WORKERS: 32
+TRAIN:
+  WARMUP_EPOCHS: 10
+  WARMUP_LR: 1e-9
+  BASE_LR: 1e-6
