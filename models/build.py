@@ -141,6 +141,35 @@ def build_model(config, is_pretrain=False):
         model = nn.Sequential(
         PolyOrderModule(grid_size=(14,14), patch_size=(16,16)),
         model)
+    elif model_type == "vit_poly_untrained":
+        model = timm.models.vision_transformer.vit_tiny_patch16_224(pretrained=False)
+        model = nn.Sequential(
+        PolyOrderModule(grid_size=(14,14), patch_size=(16,16)),
+        model)
+            
+    elif model_type == "vit":
+        model = timm.models.vision_transformer.vit_tiny_patch16_224(pretrained=True)
+        
+    elif model_type == "swin_poly_pretrained":
+        swin_model = SwinTransformer( 
+        img_size=224, 
+        patch_size=4, 
+        in_chans=3, 
+        num_classes=1000, 
+        embed_dim=96, 
+        depths=[2, 2, 6, 2], 
+        num_heads=[3, 6, 12, 24], 
+        window_size=7, 
+        drop_path_rate=0.1, 
+        )
+        swin_model.load_state_dict(torch.load("swin_tiny_patch4_window7_224_22kto1k_finetune.pth")["model"])
+        # swin_poly_model = PolySwin( img_size=(224, 224), patch_size=4, in_chans=3, num_classes=1000, embed_dim=96, depths=[2, 2, 6, 2], num_heads=[3, 6, 12, 24], window_size=7, mlp_ratio=4., qkv_bias=True, qk_scale=None, attn_drop_rate=0.1)
+        # swin_poly_model = copy_model_weights(swin_model, swin_poly_model)
+        model = nn.Sequential(
+            PolyOrderModule(grid_size=(56,56), patch_size=(4,4)),
+            swin_model
+        )
+
     else:
         raise NotImplementedError(f"Unkown model: {model_type}")
 

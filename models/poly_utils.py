@@ -34,15 +34,16 @@ class PolyOrder(torch.autograd.Function):
     
     @staticmethod
     def backward(ctx,grad_in):
-        print(grad_in)
+        # breakpoint()
+        # import pdb 
+        # pdb.set_trace()
         theta = ctx.theta
         l = ctx.l;  H = ctx.H;  W =ctx.W; B = ctx.B ; C = ctx.C
         grad_in = pad(grad_in, (l,0,l,0) ,"circular").float()
         theta[:,1,2] = -theta[:,1,2]; theta[:,0,2] = -theta[:,0,2]
         grid = affine_grid(theta, (B,C,grad_in.shape[2], grad_in.shape[3]), align_corners= False)
         grad_out = grid_sample(grad_in, grid, "nearest", align_corners= False)
-        grad_out = crop(grad_out, 0, 0, H, W)
-        print(grad_out)
+        grad_out = crop(grad_out, l, l, H, W)
         return grad_out,None, None, None, None, None, None, None
 
 
@@ -96,5 +97,22 @@ class PolyPatch(nn.Module):
             flops += Ho * Wo * self.out_chans
         return flops        
         
-    
-      
+def copy_model_weights(swin_model: torch.nn.Module, swin_poly_model: torch.nn.Module) -> torch.nn.Module:
+    # loop only over swin_poly_model keys
+    weights_copied = 0
+    for k, v in swin_poly_model.state_dict().items():
+        if k in swin_model.state_dict().keys():
+            # if shapes match
+            if v.shape == swin_model.state_dict()[k].shape:
+                # if the key is in swin_model_keys, copy the weights
+                swin_poly_model.state_dict()[k].copy_(swin_model.state_dict()[k])
+                weights_copied += 1
+                if k == "patch_embed.proj.weight":
+                    print("k: {}".format(k))
+                    print("Weights in swin_model")
+                    print(swin_model.state_dict()[k])
+                    print("Weights in swin_poly_model")
+                    print(swin_poly_model.state_dict()[k])
+
+    print("weights_copied: {}".format(weights_copied))
+    return swin_poly_model
