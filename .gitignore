@@ -4,7 +4,7 @@ __pycache__/
 *$py.class
 
 # launch bash
-#*.sh
+*.sh
 # nsight system report files
 *.nsys-rep
 *.sqlite
@@ -145,3 +145,6 @@ model/__pycache__/
 
 # Ignore model weights
 *.pth
+
+# Ignore yaml files
+*.yaml
