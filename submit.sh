@@ -7,9 +7,9 @@
 #SBATCH --exclusive
 #SBATCH --gres=gpu:4
 #SBATCH --time=1-00:00:00  
-#SBATCH --job-name=poly_0221
-#SBATCH --output=poly_0221.out
-#SBATCH --error=poly_0221.err
+#SBATCH --job-name=79vit
+#SBATCH --output=79vit.out
+#SBATCH --error=79vit.err
 #SBATCH --mem=64G
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=pding@umd.edu
@@ -26,4 +26,4 @@ cd /fs/nexus-projects/shift-equivariant_vision_transformer/Swin-Transformer
 # ViT
 # torchrun  --nproc_per_node 4  main.py --cfg configs/swin/poly_vit_tiny_0217.yaml --data-path /fs/cml-datasets/ImageNet/ILSVRC2012 --output /fs/nexus-projects/shift-equivariant_vision_transformer 
 
-torchrun  --nproc_per_node 4  main.py --cfg configs/swin/poly_swin_tiny_0221.yaml --data-path /fs/cml-datasets/ImageNet/ILSVRC2012 --output /fs/nexus-projects/shift-equivariant_vision_transformer 
+torchrun  --nproc_per_node 4  --master_port 29499  main.py --cfg configs/swin/poly_vit_tiny_0222_79.yaml --data-path /fs/cml-datasets/ImageNet/ILSVRC2012 --output /fs/nexus-projects/shift-equivariant_vision_transformer 

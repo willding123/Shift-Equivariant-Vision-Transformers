@@ -155,8 +155,10 @@ def main(config):
             wandb.run.summary["InitialAccuracy"] = acc1
             wandb.run.summary["InitialLoss"] = loss
             wandb.run.summary["InitialTop5Accuracy"] = acc5
-            
         
+        if run is not None:
+            run.log({"test accuracy": acc1, "max accuracy": acc1, "test loss": loss, "test_epoch": -1})
+
 
     if config.THROUGHPUT_MODE:
         throughput(data_loader_val, model, logger)
