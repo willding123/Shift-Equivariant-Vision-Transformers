@@ -19,6 +19,8 @@ from einops.layers.torch import Rearrange
 import torch.utils.checkpoint as checkpoint
 import numpy as np
 import time
+from .poly_utils import *
+
 
 def _cfg(url='', **kwargs):
     return {
@@ -192,6 +194,7 @@ class CSWinBlock(nn.Module):
         H = W = self.patches_resolution
         B, L, C = x.shape
         assert L == H * W, "flatten img_tokens has wrong size"
+        img = PolyOrder((H//4,(H//4), (4,4))).apply(x)
         img = self.norm1(x)
         qkv = self.qkv(img).reshape(B, -1, 3, C).permute(2, 0, 1, 3)
         
@@ -229,13 +232,14 @@ def windows2img(img_splits_hw, H_sp, W_sp, H, W):
 class Merge_Block(nn.Module):
     def __init__(self, dim, dim_out, norm_layer=nn.LayerNorm):
         super().__init__()
-        self.conv = nn.Conv2d(dim, dim_out, 3, 2, 1)
+        self.conv = nn.Conv2d(dim, dim_out, 3, 2, "circular")
         self.norm = norm_layer(dim_out)
 
     def forward(self, x):
         B, new_HW, C = x.shape
         H = W = int(np.sqrt(new_HW))
         x = x.transpose(-2, -1).contiguous().view(B, C, H, W)
+        x = PolyOrder((H//3,H//3), 3).apply(x)
         x = self.conv(x)
         B, C = x.shape[:2]
         x = x.view(B, C, -1).transpose(-2, -1).contiguous()
@@ -243,20 +247,20 @@ class Merge_Block(nn.Module):
         
         return x
 
-class CSWinTransformer(nn.Module):
+class PolyCSWin(nn.Module):
     """ Vision Transformer with support for patch or hybrid CNN input stage
     """
-    def __init__(self, img_size=224, patch_size=16, in_chans=3, num_classes=1000, embed_dim=96, depth=[2,2,6,2], split_size = [3,5,7],
+    def __init__(self, img_size=224, patch_size=7, in_chans=3, num_classes=1000, embed_dim=96, depth=[2,2,6,2], split_size = [3,5,7],
                  num_heads=12, mlp_ratio=4., qkv_bias=True, qk_scale=None, drop_rate=0., attn_drop_rate=0.,
                  drop_path_rate=0., hybrid_backbone=None, norm_layer=nn.LayerNorm, use_chk=False):
         super().__init__()
         self.use_chk = use_chk
         self.num_classes = num_classes
         self.num_features = self.embed_dim = embed_dim  # num_features for consistency with other models
-        heads=num_heads
-#TODO: ADD POLY PATCHING
+
         self.stage1_conv_embed = nn.Sequential(
-            nn.Conv2d(in_chans, embed_dim, 7, 4, 2),
+            PolyOrderModule((img_size//patch_size,img_size//patch_size), (patch_size,patch_size), 2),
+            nn.Conv2d(in_chans, embed_dim, patch_size, 4, "circular"),
             Rearrange('b c h w -> b (h w) c', h = img_size//4, w = img_size//4),
             nn.LayerNorm(embed_dim)
         )

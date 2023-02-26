@@ -76,6 +76,8 @@ def parse_option():
     parser.add_argument('--optim', type=str,
                         help='overwrite optimizer if provided, can be adamw/sgd/fused_adam/fused_lamb.')
 
+    parser.add_argument('--partial_gpu', action='store_true', help="Use partial gpus of one physical node")
+
     args, unparsed = parser.parse_known_args()
     args.local_rank = int(os.environ["LOCAL_RANK"])
     config = get_config(args)
@@ -355,7 +357,10 @@ if __name__ == '__main__':
     else:
         rank = -1
         world_size = -1
-    torch.cuda.set_device(config.LOCAL_RANK)
+    if args.partial_gpu:
+        torch.cuda.set_device(0)
+    else:
+        torch.cuda.set_device(config.LOCAL_RANK)
     torch.distributed.init_process_group(backend='nccl', init_method='env://', world_size=world_size, rank=rank)
     torch.distributed.barrier()
 
