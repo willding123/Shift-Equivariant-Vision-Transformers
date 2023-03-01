@@ -13,13 +13,16 @@ from timm.data.constants import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
 from timm.data import Mixup
 from timm.data import create_transform
 from timm.data.transforms import _pil_interp
-
+import torch
+import numpy as np
 
 def build_loader_finetune(config):
     config.defrost()
     dataset_train, config.MODEL.NUM_CLASSES = build_dataset(is_train=True, config=config)
     config.freeze()
     dataset_val, _ = build_dataset(is_train=False, config=config)
+    
+    dataset_val_adversarial, _ = build_dataset(is_train=False, config=config, roll=True)
 
     num_tasks = dist.get_world_size()
     global_rank = dist.get_rank()
@@ -28,6 +31,10 @@ def build_loader_finetune(config):
     )
     sampler_val = DistributedSampler(
         dataset_val, num_replicas=num_tasks, rank=global_rank, shuffle=False
+    )
+    
+    sampler_val_adversarial = DistributedSampler(
+        dataset_val_adversarial, num_replicas=num_tasks, rank=global_rank, shuffle=False
     )
 
     data_loader_train = DataLoader(
@@ -45,6 +52,14 @@ def build_loader_finetune(config):
         pin_memory=config.DATA.PIN_MEMORY,
         drop_last=False,
     )
+    
+    data_loader_val_adversarial = DataLoader(
+        dataset_val_adversarial, sampler=sampler_val_adversarial,
+        batch_size=config.DATA.BATCH_SIZE,
+        num_workers=config.DATA.NUM_WORKERS,
+        pin_memory=config.DATA.PIN_MEMORY,
+        drop_last=False,
+    )
 
     # setup mixup / cutmix
     mixup_fn = None
@@ -55,14 +70,17 @@ def build_loader_finetune(config):
             prob=config.AUG.MIXUP_PROB, switch_prob=config.AUG.MIXUP_SWITCH_PROB, mode=config.AUG.MIXUP_MODE,
             label_smoothing=config.MODEL.LABEL_SMOOTHING, num_classes=config.MODEL.NUM_CLASSES)
 
-    return dataset_train, dataset_val, data_loader_train, data_loader_val, mixup_fn
+    return dataset_train, dataset_val, data_loader_train, data_loader_val, data_loader_val_adversarial, mixup_fn
 
 
-def build_dataset(is_train, config):
-    transform = build_transform(is_train, config)
+def build_dataset(is_train, config, roll = False):
+    transform = build_transform(is_train, config, roll=roll)
     
     if config.DATA.DATASET == 'imagenet':
         prefix = 'train' if is_train else 'val'
+        if roll:
+            if config.DATA.SHIFT_MAX > 0:
+                prefix = prefix + '_shifted' + str(config.DATA.SHIFT_MAX)
         root = os.path.join(config.DATA.DATA_PATH, prefix)
         dataset = datasets.ImageFolder(root, transform=transform)
         nb_classes = 1000
@@ -72,8 +90,9 @@ def build_dataset(is_train, config):
     return dataset, nb_classes
 
 
-def build_transform(is_train, config):
+def build_transform(is_train, config, roll):
     resize_im = config.DATA.IMG_SIZE > 32
+    shift_roll = config.DATA.SHIFT_MAX > 0
     if is_train:
         # this should always dispatch to transforms_imagenet_train
         transform = create_transform(
@@ -90,6 +109,9 @@ def build_transform(is_train, config):
             # replace RandomResizedCropAndInterpolation with
             # RandomCrop
             transform.transforms[0] = transforms.RandomCrop(config.DATA.IMG_SIZE, padding=4)
+        if shift_roll and roll:
+            # apply torch.roll in range [-shift_max, shift_max]
+            transform.transforms.append(transforms.Lambda(lambda x: torch.roll(x, shifts=( np.random.randint(-config.DATA.SHIFT_MAX, config.DATA.SHIFT_MAX), np.random.randint(-config.DATA.SHIFT_MAX, config.DATA.SHIFT_MAX)), dims=(1, 2))))
         return transform
 
     t = []

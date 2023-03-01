@@ -37,6 +37,8 @@ _C.DATA.CACHE_MODE = 'part'
 _C.DATA.PIN_MEMORY = True
 # Number of data loading threads
 _C.DATA.NUM_WORKERS = 8
+# Max roll pixels
+_C.DATA.SHIFT_MAX = 32
 
 # [SimMIM] Mask patch size for MaskGenerator
 _C.DATA.MASK_PATCH_SIZE = 32

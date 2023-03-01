@@ -13,6 +13,7 @@ from torchvision import datasets, transforms
 from timm.data.constants import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
 from timm.data import Mixup
 from timm.data import create_transform
+import torch
 
 from .cached_image_folder import CachedImageFolder
 from .imagenet22k_dataset import IN22KDATASET
@@ -49,8 +50,9 @@ def build_loader(config):
     print(f"local rank {0} / global rank {0} successfully build train dataset")
 
     print(f"local rank {config.LOCAL_RANK} / global rank {dist.get_rank()} successfully build train dataset")
-    dataset_val, _ = build_dataset(is_train=False, config=config)
+    dataset_val, _ = build_dataset(is_train=False, config=config, roll=False)
     print(f"local rank {0} / global rank {0} successfully build val dataset")
+    dataset_val_adversarial, _ = build_dataset(is_train=False, config=config, roll=True)
 
     print(f"local rank {config.LOCAL_RANK} / global rank {dist.get_rank()} successfully build val dataset")
 
@@ -69,9 +71,13 @@ def build_loader(config):
 
     if config.TEST.SEQUENTIAL:
         sampler_val = torch.utils.data.SequentialSampler(dataset_val)
+        sampler_val_adversarial = torch.utils.data.SequentialSampler(dataset_val_adversarial)
     else:
         sampler_val = torch.utils.data.distributed.DistributedSampler(
             dataset_val, shuffle=config.TEST.SHUFFLE
+        )
+        sampler_val_adversarial = torch.utils.data.distributed.DistributedSampler(
+            dataset_val_adversarial, shuffle=config.TEST.SHUFFLE
         )
 
     data_loader_train = torch.utils.data.DataLoader(
@@ -90,6 +96,15 @@ def build_loader(config):
         pin_memory=config.DATA.PIN_MEMORY,
         drop_last=False
     )
+    
+    data_loader_val_adversarial = torch.utils.data.DataLoader(
+        dataset_val_adversarial, sampler=sampler_val_adversarial,
+        batch_size=config.DATA.BATCH_SIZE,
+        shuffle=False,
+        num_workers=config.DATA.NUM_WORKERS,
+        pin_memory=config.DATA.PIN_MEMORY,
+        drop_last=False
+    )
 
     # setup mixup / cutmix
     mixup_fn = None
@@ -100,13 +115,16 @@ def build_loader(config):
             prob=config.AUG.MIXUP_PROB, switch_prob=config.AUG.MIXUP_SWITCH_PROB, mode=config.AUG.MIXUP_MODE,
             label_smoothing=config.MODEL.LABEL_SMOOTHING, num_classes=config.MODEL.NUM_CLASSES)
 
-    return dataset_train, dataset_val, data_loader_train, data_loader_val, mixup_fn
+    return dataset_train, dataset_val, data_loader_train, data_loader_val, data_loader_val_adversarial, mixup_fn
 
 
-def build_dataset(is_train, config):
-    transform = build_transform(is_train, config)
+def build_dataset(is_train, config, roll=False):
+    transform = build_transform(is_train, config, roll=roll)
     if config.DATA.DATASET == 'imagenet':
         prefix = 'train' if is_train else 'val'
+        # if roll:
+        #     if config.DATA.SHIFT_MAX > 0:
+        #         prefix = prefix + '_shifted' + str(config.DATA.SHIFT_MAX)
         if config.DATA.ZIP_MODE:
             ann_file = prefix + "_map.txt"
             prefix = prefix + ".zip@/"
@@ -130,8 +148,9 @@ def build_dataset(is_train, config):
     return dataset, nb_classes
 
 
-def build_transform(is_train, config):
+def build_transform(is_train, config, roll = False):
     resize_im = config.DATA.IMG_SIZE > 32
+    shift_roll = config.DATA.SHIFT_MAX > 0
     if is_train:
         # this should always dispatch to transforms_imagenet_train
         transform = create_transform(
@@ -148,6 +167,9 @@ def build_transform(is_train, config):
             # replace RandomResizedCropAndInterpolation with
             # RandomCrop
             transform.transforms[0] = transforms.RandomCrop(config.DATA.IMG_SIZE, padding=4)
+        if shift_roll and roll:
+            # apply torch.roll in range [-shift_max, shift_max]
+            transform.transforms.append(transforms.Lambda(lambda x: torch.roll(x, shifts=( np.random.randint(-config.DATA.SHIFT_MAX, config.DATA.SHIFT_MAX), np.random.randint(-config.DATA.SHIFT_MAX, config.DATA.SHIFT_MAX)), dims=(1, 2))))
         return transform
 
     t = []
@@ -167,4 +189,7 @@ def build_transform(is_train, config):
 
     t.append(transforms.ToTensor())
     t.append(transforms.Normalize(IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD))
+    if shift_roll and roll:
+        # apply torch.roll in range [-shift_max, shift_max]
+        t.append(transforms.Lambda(lambda x: torch.roll(x, shifts=( np.random.randint(-config.DATA.SHIFT_MAX, config.DATA.SHIFT_MAX), np.random.randint(-config.DATA.SHIFT_MAX, config.DATA.SHIFT_MAX)), dims=(1, 2))))
     return transforms.Compose(t)

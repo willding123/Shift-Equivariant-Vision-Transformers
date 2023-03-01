@@ -89,7 +89,7 @@ def main(config):
         run = wandb.init(config = config, project="test-project", entity="swin-transformer-poly", group = "William")
     else:
         run = None
-    dataset_train, dataset_val, data_loader_train, data_loader_val, mixup_fn = build_loader(config)
+    dataset_train, dataset_val, data_loader_train, data_loader_val, data_loader_val_adv, mixup_fn = build_loader(config)
     logger.info(f"Creating model:{config.MODEL.TYPE}/{config.MODEL.NAME}")
     model = build_model(config)
     logger.info(str(model))
@@ -139,6 +139,7 @@ def main(config):
         print(config.MODEL.RESUME)
         max_accuracy = load_checkpoint(config, model_without_ddp, optimizer, lr_scheduler, loss_scaler, logger)
         acc1, acc5, loss = validate(config, data_loader_val, model)
+        acc1_adv, acc5_adv, loss_adv = validate(config, data_loader_val_adv, model)
         logger.info(f"Accuracy of the network on the {len(dataset_val)} test images: {acc1:.1f}%")
         if run is not None:
             run.log({"Initial Accuracy": acc1, "Initial Loss": loss, "Initial Top5 Accuracy": acc5})
@@ -148,6 +149,7 @@ def main(config):
     if config.MODEL.PRETRAINED and (not config.MODEL.RESUME):
         # load_pretrained(config, model_without_ddp, logger) #FIXME control some other way
         acc1, acc5, loss = validate(config, data_loader_val, model)
+        acc1_adv, acc5_adv, loss_adv = validate(config, data_loader_val_adv, model)
         logger.info(f"Accuracy of the network on the {len(dataset_val)} test images: {acc1:.1f}%")
         if run is not None:
             # "InitialAccuracy": acc1, "InitialLoss": loss
@@ -174,6 +176,7 @@ def main(config):
                             logger)
 
         acc1, acc5, loss = validate(config, data_loader_val, model)
+        acc1_adv, acc5_adv, loss_adv = validate(config, data_loader_val_adv, model)
         logger.info(f"Accuracy of the network on the {len(dataset_val)} test images: {acc1:.1f}%")
         max_accuracy = max(max_accuracy, acc1)
         logger.info(f'Max accuracy: {max_accuracy:.2f}%')
@@ -181,6 +184,7 @@ def main(config):
             wandb.summary["MaxAccuracy"] = max_accuracy
             # run.log({"Accuracy": acc1, "Loss": loss, "Top5 Accuracy": acc5, "Max Accuracy": max_accuracy, "test_epoch": epoch})
             run.log({"test_accuracy": acc1, "test_loss": loss, "test_top5_accuracy": acc5, "test_epoch": epoch, 'test_max_accuracy': max_accuracy})
+            run.log({"test_adv_accuracy": acc1_adv, "test_adv_loss": loss_adv, "test_adv_top5_accuracy": acc5_adv, "test_adv_epoch": epoch})
 
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
