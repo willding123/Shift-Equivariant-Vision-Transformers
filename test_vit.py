@@ -6,9 +6,9 @@ from timm.models.layers import PatchEmbed, Mlp, DropPath, trunc_normal_, lecun_n
 import timm
 from models.poly_utils import *
 #%% 
-x = torch.rand((1,3,224,224)).cuda()
+x = torch.rand((1,3,224,224))
 num_test = 1000
-model = VisionTransformer(embed_layer=PatchEmbed ,weight_init = 'skip').cuda()
+model = VisionTransformer(embed_layer=PatchEmbed ,weight_init = 'skip')
 model.eval()
 for i in range(num_test):
     shifts = tuple(np.random.randint(0,16,2))
