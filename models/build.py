@@ -157,8 +157,11 @@ def build_model(config, is_pretrain=False):
         PolyOrderModule(grid_size=(14,14), patch_size=(16,16)),
         model)
             
-    elif model_type == "vit":
+    elif model_type == "vit_tiny":
         model = timm.models.vision_transformer.vit_tiny_patch16_224(pretrained=True)
+
+    elif model_type == "vit_small_patch32_224":
+        model = timm.create_model("hf_hub:timm/vit_small_patch32_224.augreg_in21k_ft_in1k", pretrained=True)
         
     elif model_type == "swin_poly_pretrained":
         swin_model = SwinTransformer( 
