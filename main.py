@@ -146,6 +146,7 @@ def main(config):
         logger.info(f"Accuracy of the network on the {len(dataset_val)} test shifted images: {acc1_adv:.1f}%")
         if run is not None:
             run.log({"Initial Accuracy": acc1, "Initial Loss": loss, "Initial Top5 Accuracy": acc5})
+            run.log({"Initial Accuracy Shifted": acc1_adv, "Initial Loss Shifted": loss_adv, "Initial Top5 Accuracy Shifted": acc5_adv})
         if config.EVAL_MODE:
             return
 
@@ -161,6 +162,9 @@ def main(config):
             wandb.run.summary["InitialAccuracy"] = acc1
             wandb.run.summary["InitialLoss"] = loss
             wandb.run.summary["InitialTop5Accuracy"] = acc5
+            wandb.run.summary["InitialAccuracyShifted"] = acc1_adv
+            wandb.run.summary["InitialLossShifted"] = loss_adv
+            wandb.run.summary["InitialTop5AccuracyShifted"] = acc5_adv
         
         if run is not None:
             run.log({"test accuracy": acc1, "max accuracy": acc1, "test loss": loss, "test_epoch": -1})
