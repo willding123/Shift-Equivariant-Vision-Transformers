@@ -20,6 +20,7 @@ import torch.utils.checkpoint as checkpoint
 import numpy as np
 import time
 
+
 def _cfg(url='', **kwargs):
     return {
         'url': url,
@@ -260,6 +261,8 @@ class CSWinTransformer(nn.Module):
             Rearrange('b c h w -> b (h w) c', h = img_size//4, w = img_size//4),
             nn.LayerNorm(embed_dim)
         )
+
+        
 
         curr_dim = embed_dim
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, np.sum(depth))]  # stochastic depth decay rule

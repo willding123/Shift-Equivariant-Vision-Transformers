@@ -5,6 +5,7 @@ __pycache__/
 
 # launch bash
 *.sh
+zara.sh
 # nsight system report files
 *.nsys-rep
 *.sqlite
@@ -148,3 +149,6 @@ model/__pycache__/
 
 # Ignore yaml files
 *.yaml
+
+# Ignore vscode settings 
+settings.json

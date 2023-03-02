@@ -26,7 +26,7 @@ except:
  
 class PolyOrder(torch.autograd.Function):
     @staticmethod
-    def forward (ctx, x, grid_size, patch_size, norm =2, use_gpu = True):
+    def forward (ctx, x, grid_size, patch_size, norm=2, use_gpu = True):
         device = "cuda" if use_gpu else "cpu"
         B, C, H, W = x.shape
         tmp = x.clone()
