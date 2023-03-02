@@ -141,6 +141,7 @@ def main(config):
         acc1, acc5, loss = validate(config, data_loader_val, model)
         acc1_adv, acc5_adv, loss_adv = validate(config, data_loader_val_adv, model)
         logger.info(f"Accuracy of the network on the {len(dataset_val)} test images: {acc1:.1f}%")
+        logger.info(f"Accuracy of the network on the {len(dataset_val)} test shifted images: {acc1_adv:.1f}%")
         if run is not None:
             run.log({"Initial Accuracy": acc1, "Initial Loss": loss, "Initial Top5 Accuracy": acc5})
         if config.EVAL_MODE:
@@ -151,6 +152,7 @@ def main(config):
         acc1, acc5, loss = validate(config, data_loader_val, model)
         acc1_adv, acc5_adv, loss_adv = validate(config, data_loader_val_adv, model)
         logger.info(f"Accuracy of the network on the {len(dataset_val)} test images: {acc1:.1f}%")
+        logger.info(f"Accuracy of the network on the {len(dataset_val)} test shifted images: {acc1_adv:.1f}%")
         if run is not None:
             # "InitialAccuracy": acc1, "InitialLoss": loss
             # wandb summary
@@ -158,7 +160,8 @@ def main(config):
             wandb.run.summary["InitialLoss"] = loss
             wandb.run.summary["InitialTop5Accuracy"] = acc5
             
-        
+    if config.EVAL_MODE:
+        return
 
     if config.THROUGHPUT_MODE:
         throughput(data_loader_val, model, logger)
