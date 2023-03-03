@@ -10,6 +10,8 @@ from torchvision.transforms import InterpolationMode
 import timm 
 import time 
 import numpy as np 
+from config import _C
+from models.build import build_model
 #%%
 # variables 
 roll = True
@@ -17,8 +19,11 @@ shift_size = 32
 model_type = "timm"
 # Define the location of the validation dataset
 data_path = '~/scratch.cmsc663/val'
-model = timm.create_model("hf_hub:timm/vit_small_patch16_224.augreg_in21k_ft_in1k", pretrained=True)
-
+# model = timm.create_model("hf_hub:timm/vit_small_patch16_224.augreg_in21k_ft_in1k", pretrained=True)
+config  = _C.clone()
+config.MODEL.TYPE = "vit_poly_small"
+config.MODEL.PRETRAIN_PATH = "/home/pding/scratch.cmsc663/poly_vit_small_0228/default/ckpt_epoch_293.pth"
+model = build_model(config, is_pretrain=True)
 #%%
 if model_type == "timm":
     # Define the transforms to be applied to the input images

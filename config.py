@@ -143,6 +143,9 @@ _C.MODEL.SIMMIM.NORM_TARGET = CN()
 _C.MODEL.SIMMIM.NORM_TARGET.ENABLE = False
 _C.MODEL.SIMMIM.NORM_TARGET.PATCH_SIZE = 47
 
+# Pretrained checkpoint path
+_C.MODEL.PRETRAIN_PATH = ""
+
 # -----------------------------------------------------------------------------
 # Training settings
 # -----------------------------------------------------------------------------
