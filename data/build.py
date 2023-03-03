@@ -199,5 +199,10 @@ def build_transform(is_train, config, roll = False):
             # print("shifted by ", config.DATA.SHIFT_SIZE, " pixels")
             t.append(transforms.Lambda(lambda x: torch.roll(x, (config.DATA.SHIFT_SIZE, config.DATA.SHIFT_SIZE), (1, 2))))
         else:
-            t.append(transforms.Lambda(lambda x: torch.roll(x, shifts=( np.random.randint(-config.DATA.SHIFT_MAX, config.DATA.SHIFT_MAX), np.random.randint(-config.DATA.SHIFT_MAX, config.DATA.SHIFT_MAX)), dims=(0, 1))))
+            # t.append(transforms.Lambda(lambda x: torch.roll(x, shifts=( np.random.randint(-config.DATA.SHIFT_MAX, config.DATA.SHIFT_MAX), np.random.randint(-config.DATA.SHIFT_MAX, config.DATA.SHIFT_MAX)), dims=(0, 1))))
+            # generate a two-element tuple of random integers in the range [0, config.DATA.SHIFT_MAX)
+            # shifts = (np.random.randint(-config.DATA.SHIFT_MAX, config.DATA.SHIFT_MAX), np.random.randint(-config.DATA.SHIFT_MAX, config.DATA.SHIFT_MAX))
+            # t.append(transforms.Lambda(lambda x: torch.roll(x, shifts=shifts, dims=(1,2))))
+            t.append(transforms.RandomAffine(degrees=0, translate=(config.DATA.SHIFT_MAX/config.DATA.IMG_SIZE, config.DATA.SHIFT_MAX/config.DATA.IMG_SIZE), scale=None, shear=None, resample=False, fill=0))
+
     return transforms.Compose(t)

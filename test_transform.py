@@ -19,11 +19,11 @@ for i in range(num):
     # plt.imshow(raw_data[i][0])
     # plt.show()
     print("transformed data")
-    plt.imshow(data[10][0][0], cmap='gray')
+    plt.imshow(data[11][0][0], cmap='gray')
     plt.show()
-    plt.imshow(data[10][0][1], cmap='gray')
+    plt.imshow(data[11][0][1], cmap='gray')
     plt.show()
-    plt.imshow(data[10][0][2], cmap='gray')
+    plt.imshow(data[11][0][2], cmap='gray')
     plt.show()
 
 # %%
