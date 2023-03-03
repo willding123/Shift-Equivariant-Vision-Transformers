@@ -139,8 +139,10 @@ def main(config):
 
     if config.MODEL.RESUME:
         print(config.MODEL.RESUME)
+        ## TODO: add consistency evaluation 
         max_accuracy = load_checkpoint(config, model_without_ddp, optimizer, lr_scheduler, loss_scaler, logger)
-        acc1, acc5, loss = validate(config, data_loader_val, model)
+        # acc1, acc5, loss = validate(config, data_loader_val, model)
+        logger.info(f"Shift Size {config.DATA.SHIFT_SIZE}")
         acc1_adv, acc5_adv, loss_adv = validate(config, data_loader_val_adv, model)
         logger.info(f"Accuracy of the network on the {len(dataset_val)} test images: {acc1:.1f}%")
         logger.info(f"Accuracy of the network on the {len(dataset_val)} test shifted images: {acc1_adv:.1f}%")
@@ -153,6 +155,7 @@ def main(config):
     if config.MODEL.PRETRAINED and (not config.MODEL.RESUME):
         # load_pretrained(config, model_without_ddp, logger) #FIXME control some other way
         acc1, acc5, loss = validate(config, data_loader_val, model)
+        logger.info(f"Shift Size {config.DATA.SHIFT_SIZE}")
         acc1_adv, acc5_adv, loss_adv = validate(config, data_loader_val_adv, model)
         logger.info(f"Accuracy of the network on the {len(dataset_val)} test images: {acc1:.1f}%")
         logger.info(f"Accuracy of the network on the {len(dataset_val)} test shifted images: {acc1_adv:.1f}%")

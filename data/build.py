@@ -10,7 +10,7 @@ import torch
 import numpy as np
 import torch.distributed as dist
 from torchvision import datasets, transforms
-from timm.data.constants import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
+from timm.data.constants import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD, IMAGENET_INCEPTION_MEAN, IMAGENET_INCEPTION_STD
 from timm.data import Mixup
 from timm.data import create_transform
 import torch
@@ -167,9 +167,13 @@ def build_transform(is_train, config, roll = False):
             # replace RandomResizedCropAndInterpolation with
             # RandomCrop
             transform.transforms[0] = transforms.RandomCrop(config.DATA.IMG_SIZE, padding=4)
-        if shift_roll and roll:
-            # apply torch.roll in range [-shift_max, shift_max]
-            transform.transforms.append(transforms.Lambda(lambda x: torch.roll(x, shifts=( np.random.randint(-config.DATA.SHIFT_MAX, config.DATA.SHIFT_MAX), np.random.randint(-config.DATA.SHIFT_MAX, config.DATA.SHIFT_MAX)), dims=(1, 2))))
+        # if shift_roll and roll:
+        #     # apply torch.roll in range [-shift_max, shift_max]
+        #     if abs(config.DATA.SHIFT_SIZE) > 0 :
+        #         print("shifted by ", config.DATA.SHIFT_SIZE, " pixels")
+        #         transform.transforms.append(transforms.Lambda(lambda x: shift_utils(x, config.DATA.SHIFT_SIZE)))
+        #     else:
+        #         transform.transforms.append(transforms.Lambda(lambda x: torch.roll(x, shifts=( np.random.randint(-config.DATA.SHIFT_MAX, config.DATA.SHIFT_MAX), np.random.randint(-config.DATA.SHIFT_MAX, config.DATA.SHIFT_MAX)), dims=(1, 2))))
         return transform
 
     t = []
@@ -188,8 +192,12 @@ def build_transform(is_train, config, roll = False):
             )
 
     t.append(transforms.ToTensor())
-    t.append(transforms.Normalize(IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD))
+    t.append(transforms.Normalize(IMAGENET_INCEPTION_MEAN, IMAGENET_INCEPTION_STD))
     if shift_roll and roll:
         # apply torch.roll in range [-shift_max, shift_max]
-        t.append(transforms.Lambda(lambda x: torch.roll(x, shifts=( np.random.randint(-config.DATA.SHIFT_MAX, config.DATA.SHIFT_MAX), np.random.randint(-config.DATA.SHIFT_MAX, config.DATA.SHIFT_MAX)), dims=(1, 2))))
+        if abs(config.DATA.SHIFT_SIZE) > 0 :
+            # print("shifted by ", config.DATA.SHIFT_SIZE, " pixels")
+            t.append(transforms.Lambda(lambda x: torch.roll(x, (config.DATA.SHIFT_SIZE, config.DATA.SHIFT_SIZE), (1, 2))))
+        else:
+            t.append(transforms.Lambda(lambda x: torch.roll(x, shifts=( np.random.randint(-config.DATA.SHIFT_MAX, config.DATA.SHIFT_MAX), np.random.randint(-config.DATA.SHIFT_MAX, config.DATA.SHIFT_MAX)), dims=(0, 1))))
     return transforms.Compose(t)
