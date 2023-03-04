@@ -5,7 +5,7 @@ __pycache__/
 
 # launch bash
 *.sh
-zara.sh
+
 # nsight system report files
 *.nsys-rep
 *.sqlite
@@ -156,3 +156,7 @@ settings.json
 # Ignore err and out files 
 *.err
 *.out
+
+# Ignore pth and npz files
+*.pth
+*.npz

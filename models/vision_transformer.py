@@ -244,7 +244,7 @@ class VisionTransformer(nn.Module):
             attn_drop_rate=0.,
             drop_path_rate=0.,
             weight_init='',
-            embed_layer=PolyPatch,
+            embed_layer=PatchEmbed,
             norm_layer=None,
             act_layer=None,
             block_fn=Block,

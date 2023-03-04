@@ -116,3 +116,16 @@ def copy_model_weights(swin_model: torch.nn.Module, swin_poly_model: torch.nn.Mo
 
     print("weights_copied: {}".format(weights_copied))
     return swin_poly_model
+
+
+def arrange_polyphases(x, patch_size):
+    B, C, H, W = x.shape
+    grid_size = (H//patch_size[0], W//patch_size[1])
+    tmp = x.clone()
+    tmp = tmp.view(B,C,grid_size[0], patch_size[0], grid_size[0], patch_size[1] )
+    tmp = torch.permute(tmp, (0,1,2, 4,3,5))
+    tmp = torch.permute(tmp.reshape(B,C, grid_size[0]**2, patch_size[0]**2), (0,1,3,2))
+    tmp = torch.permute(tmp, (0,2,1,3))
+    tmp = tmp.contiguous()
+    norm = torch.linalg.vector_norm(tmp, dim=(2,3))
+    return tmp, norm 

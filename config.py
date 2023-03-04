@@ -39,7 +39,7 @@ _C.DATA.PIN_MEMORY = True
 _C.DATA.NUM_WORKERS = 8
 # Max roll pixels
 _C.DATA.SHIFT_MAX = 16
-_C.DATA.SHIFT_SIZE = 0
+_C.DATA.SHIFT_SIZE = 40
 
 # [SimMIM] Mask patch size for MaskGenerator
 _C.DATA.MASK_PATCH_SIZE = 32
