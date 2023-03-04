@@ -39,7 +39,6 @@ model = timm.create_model("hf_hub:timm/vit_relpos_small_patch16_224.sw_in1k", pr
 model = torch.nn.Sequential(
 PolyOrderModule(grid_size=(14,14), patch_size=(16,16)),
 model).cuda()
-
 #%%
 if model_type == "timm":
     # Define the transforms to be applied to the input images
@@ -107,8 +106,8 @@ with torch.no_grad():
             # generate a two-element tuple of random integers between -shift_size and shift_size
             shifts = (np.random.randint(-shift_size, shift_size),np.random.randint(-shift_size, shift_size))
             shifts1 = (np.random.randint(-shift_size, shift_size),np.random.randint(-shift_size, shift_size))
-            images = torch.roll(images, shifts, (2,3))
-            images1 = torch.roll(images, shifts1, (2,3))
+            images = torch.roll(raw, shifts, (2,3))
+            images1 = torch.roll(raw, shifts1, (2,3))
 
         
         # Compute the model output for the input batch
