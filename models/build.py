@@ -14,6 +14,7 @@ from .simmim import build_simmim
 import timm 
 from .poly_utils import *
 
+
 def build_model(config, is_pretrain=False):
     model_type = config.MODEL.TYPE
 
@@ -162,7 +163,25 @@ def build_model(config, is_pretrain=False):
         model = nn.Sequential(
         PolyOrderModule(grid_size=(14,14), patch_size=(16,16)),
         model)
-            
+
+    elif model_type == "vit_relpos_small":
+        model = timm.create_model("hf_hub:timm/vit_relpos_small_patch16_224.sw_in1k", pretrained=True)
+        model = nn.Sequential(
+        PolyOrderModule(grid_size=(14,14), patch_size=(16,16)),
+        model)
+
+    elif model_type == "vit_relpos_medium":
+        model = timm.create_model("hf_hub:timm/vit_relpos_medium_patch16_224.sw_in1k", pretrained=True)
+        model = nn.Sequential(
+        PolyOrderModule(grid_size=(14,14), patch_size=(16,16)),
+        model)
+    
+    elif model_type == "vit_relpos_base":
+        model = timm.create_model("hf_hub:timm/vit_relpos_base_patch16_224.sw_in1k", pretrained=True)
+        model = nn.Sequential(
+        PolyOrderModule(grid_size=(14,14), patch_size=(16,16)),
+        model)
+
     elif model_type == "vit_tiny":
         model = timm.models.vision_transformer.vit_tiny_patch16_224(pretrained=True)
 

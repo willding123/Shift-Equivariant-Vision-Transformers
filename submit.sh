@@ -7,9 +7,9 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:4
 #SBATCH --time=1-00:00:00  
-#SBATCH --job-name=vit
-#SBATCH --output=vit.out
-#SBATCH --error=vit.err
+#SBATCH --job-name=rvit
+#SBATCH --output=rvit.out
+#SBATCH --error=rvit.err
 #SBATCH --mem=64G 
 #SBATCH --cpus-per-task=16 
 #SBATCH --mail-type=ALL
@@ -26,5 +26,5 @@ cd ~/Swin-Transformer
 # ViT
 # torchrun  --nproc_per_node 4  main.py --cfg configs/swin/poly_vit_tiny_0217.yaml --data-path /fs/cml-datasets/ImageNet/ILSVRC2012 --output /fs/nexus-projects/shift-equivariant_vision_transformer 
 
-torchrun  --nproc_per_node 4  --master_port 29499  main.py --cfg configs/swin/poly_vit_tiny_0228.yaml --data-path /fs/cml-datasets/ImageNet/ILSVRC2012 --output /cmlscratch/pding 
+torchrun  --nproc_per_node 4  --master_port 29499  main.py --cfg configs/swin/vit_relpos_0304.yaml --data-path /fs/cml-datasets/ImageNet/ILSVRC2012 --output /cmlscratch/pding 
 
