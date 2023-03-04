@@ -34,7 +34,8 @@ data_path = '/fs/cml-datasets/ImageNet/ILSVRC2012/val'
 # config.MODEL.PRETRAIN_PATH = "/home/pding/scratch.cmsc663/poly_vit_base_0227/default/ckpt_epoch_173.pth"
 # model = build_model(config, is_pretrain=True)
 # model = VisionTransformer(weight_init = 'skip')
-model = VisionTransformerRelPos()
+# model = VisionTransformerRelPos()
+model = timm.create_model("hf_hub:timm/vit_relpos_small_patch16_224.sw_in1k", pretrained=True)
 model = torch.nn.Sequential(
 PolyOrderModule(grid_size=(14,14), patch_size=(16,16)),
 model).cuda()
