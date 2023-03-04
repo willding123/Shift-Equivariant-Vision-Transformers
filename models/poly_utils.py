@@ -8,7 +8,7 @@ from torchvision.transforms.functional import crop
 
 class PolyOrder(torch.autograd.Function):
     @staticmethod
-    def forward (ctx, x, grid_size, patch_size, norm =2, use_gpu = True):
+    def forward (ctx, x, grid_size, patch_size, norm =2,  invariance = False, use_gpu = True):
         device = "cuda" if use_gpu else "cpu"
         B, C, H, W = x.shape
         tmp = x.clone()
@@ -20,12 +20,25 @@ class PolyOrder(torch.autograd.Function):
         norm = torch.linalg.vector_norm(tmp, dim=(2,3))
         del tmp
         idx = torch.argmax(norm, dim=1).int()
+        px = (idx/patch_size[0]).int()
+        py = idx%patch_size[1]
+        if invariance:
+        # choose the polyphase based on its idx and patch_size 
+            px = (idx/patch_size[0]).int()
+            py = idx%patch_size[1]
+            norm1 = torch.linalg.norm(x[:,:, px::patch_size[0], py::patch_size[1]].permute(0,2,3,1).reshape(B, -1, C), dim=2, ord=norm)
+            idx1 = torch.argmax(norm1, dim=1).int()
+            px1 = (idx1/grid_size[0]).int()*patch_size[0]
+            py1 = idx1%grid_size[1]*patch_size[1]
+            px = px1 + px
+            py = py1 + py
+
         theta = torch.zeros((B,2,3), requires_grad=False).to(device).float()
         theta[:,0, 0] = 1; theta[:,1,1] = 1;
         l = patch_size[0]-1
         x = pad(x, (0,l,0,l) ,"circular").float()
-        theta[:,1,2]  = (idx/patch_size[0]).int()*2/x.shape[2]
-        theta[:,0,2] = (idx%patch_size[1])*2/x.shape[3] 
+        theta[:,1,2]  = px*2/x.shape[2]
+        theta[:,0,2] = py*2/x.shape[3] 
         ctx.theta =  theta; ctx.l = l; ctx.H = H; ctx.W = W; ctx.B = B; ctx.C = C
         grid = affine_grid(theta, (B,C,x.shape[2], x.shape[3]), align_corners= False)
         x = grid_sample(x, grid, "nearest", align_corners= False)
@@ -48,14 +61,15 @@ class PolyOrder(torch.autograd.Function):
 
 
 class PolyOrderModule(nn.Module):
-    def __init__(self, grid_size, patch_size, norm =2, use_gpu = True):
+    def __init__(self, grid_size, patch_size, norm =2, invariance = False, use_gpu = True):
         super().__init__()
         self.grid_size = grid_size
         self.patch_size = patch_size
         self.norm = norm
         self.use_gpu = use_gpu
+        self.invariance = invariance
     def forward(self, x):
-        return PolyOrder.apply(x, self.grid_size, self.patch_size, self.norm, self.use_gpu)
+        return PolyOrder.apply(x, self.grid_size, self.patch_size, self.norm, self.invariance, self.use_gpu)
 
 class PolyPatch(nn.Module): 
     r""" PolyPatch Layer: 

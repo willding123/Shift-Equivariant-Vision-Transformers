@@ -15,14 +15,13 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.nn.parallel import DistributedDataParallel as DDP
 
-# from models.swin_transformer_poly import poly_order
-from models.swin_transformer_poly import *
 # from models.swin_transformer import *
 from models.swin_transformer import SwinTransformer, SwinTransformerBlock
 from torchvision.transforms.functional import affine
 from torch.profiler import profile, record_function, ProfilerActivity
 import matplotlib.pyplot as plt 
 from utils import * 
+from models.poly_utils import PolyOrderModule, arrange_polyphases, PolyOrder
 
 
 
@@ -186,13 +185,39 @@ class TestShift(unittest.TestCase):
         print(model(x))
         print(model(xr))
 
+    def test_polyorder_invariance(self):
+        # test a shift invariant function 
+        # loop the attack for 100 times
+        for i in range(100):
+            x = torch.randn((3,4,224,224))
+            shifts = tuple(np.random.randint(0,32,2))
+            x1 = torch.roll(x, shifts, (2,3))
+            grid_size = (32,32); patch_size = (7,7)
+            y = PolyOrder.apply(x, grid_size, patch_size, 2, True, False)
+            y1 = PolyOrder.apply(x1, grid_size, patch_size, 2, True, False)
+            assert torch.linalg.norm(y-y1) == 0
+
+    def test_model_invariance(self, model):
+        # test model invariance to shifts, model as input argument
+        # loop the attack for 100 times
+        for i in range(100):
+            x = torch.randn((4,3,224,224)).cuda()
+            shifts = tuple(np.random.randint(0,32,2))
+            x1 = torch.roll(x, shifts, (2,3)).cuda()
+            grid_size = (32,32); patch_size = (7,7);
+            y = model(x)
+            y1 = model(x1)
+            assert torch.linalg.norm(y-y1) == 0
+        
+
+       
+
+#%%
 if __name__ == "__main__":
     test = TestShift()
     start = time.time()
     try: 
-        test.setUp()
-        test.test_polyorder_tokens()
-        test.test_swin_block()
+        test.test_polyorder_invariance()
     except:
         print("Exception!")
         traceback.print_exc()
@@ -201,7 +226,7 @@ if __name__ == "__main__":
         print(f"Time elapsed: {end}")
     # unittest.main()
 
-
+#%%
 
 
 
