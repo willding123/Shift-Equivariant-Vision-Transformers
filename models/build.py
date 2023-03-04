@@ -154,6 +154,9 @@ def build_model(config, is_pretrain=False):
         model = nn.Sequential(
         PolyOrderModule(grid_size=(14,14), patch_size=(16,16)),
         model)
+        if is_pretrain:
+            checkpoint = torch.load(config.MODEL.PRETRAIN_PATH, map_location='cpu')
+            model.load_state_dict(checkpoint['model'], strict=False)
     elif model_type == "vit_poly_untrained":
         model = timm.models.vision_transformer.vit_tiny_patch16_224(pretrained=False)
         model = nn.Sequential(
