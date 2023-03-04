@@ -72,18 +72,18 @@ else:
 # Create the data loader for dataset
 dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=1)
 
-    # Load the pre-trained model
-    # Set the model to evaluate mode
-    model.eval()
+# Load the pre-trained model
+# Set the model to evaluate mode
+model.eval()
 
-    # Define the device to use for computation (CPU or GPU)
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+# Define the device to use for computation (CPU or GPU)
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    # Move the model to the device
-    model.to(device)
+# Move the model to the device
+model.to(device)
 
-    # Define the criterion (loss function) to use for evaluation
-    criterion = torch.nn.CrossEntropyLoss()
+# Define the criterion (loss function) to use for evaluation
+criterion = torch.nn.CrossEntropyLoss()
 
 # Define variables to keep track of the total loss and accuracy
 total_loss = 0
