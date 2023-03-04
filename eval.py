@@ -4,6 +4,7 @@ import torchvision.models as models
 from torchvision.datasets import ImageFolder
 from torchvision.transforms import transforms
 from torch.utils.data import DataLoader
+from timm.models.vision_transformer_relpos import VisionTransformerRelPos
 # import imagenet default constants from timm
 from timm.data.constants import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD, IMAGENET_INCEPTION_MEAN, IMAGENET_INCEPTION_STD
 from torchvision.transforms import InterpolationMode
@@ -25,13 +26,15 @@ roll = True
 shift_size = 40
 model_type = ""
 # Define the location of the validation dataset
-data_path = '/home/pding/scratch.cmsc663/val'
+# data_path = '/home/pding/scratch.cmsc663/val'
+data_path = '/fs/cml-datasets/ImageNet/ILSVRC2012/val'
 # model = timm.create_model("hf_hub:timm/vit_base_patch16_224.augreg_in21k_ft_in1k", pretrained=True)
 # config  = _C.clone()
 # config.MODEL.TYPE = "vit_poly_base"
 # config.MODEL.PRETRAIN_PATH = "/home/pding/scratch.cmsc663/poly_vit_base_0227/default/ckpt_epoch_173.pth"
 # model = build_model(config, is_pretrain=True)
-model = VisionTransformer(weight_init = 'skip')
+# model = VisionTransformer(weight_init = 'skip')
+model = VisionTransformerRelPos()
 model = torch.nn.Sequential(
 PolyOrderModule(grid_size=(14,14), patch_size=(16,16)),
 model).cuda()

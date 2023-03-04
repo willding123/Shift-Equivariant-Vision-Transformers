@@ -1,6 +1,7 @@
 #%% 
 import torch 
-from models.vision_transformer import * 
+from models.vision_transformer import VisionTransformer
+from timm.models.vision_transformer_relpos import VisionTransformerRelPos
 import numpy as np 
 from timm.models.layers import PatchEmbed, Mlp, DropPath, trunc_normal_, lecun_normal_
 import timm
@@ -17,7 +18,8 @@ num_test = 10000
 # config.MODEL.PRETRAIN_PATH = "/home/pding/scratch.cmsc663/poly_vit_base_0227/default/ckpt_epoch_173.pth"
 # config.MODEL.PRETRAIN_PATH = "/home/pding/scratch.cmsc663/poly_vit_small_0228/default/ckpt_epoch_299.pth"
 # model = build_model(config, is_pretrain=True).cuda()
-model = VisionTransformer(embed_layer=PatchEmbed ,weight_init = 'skip').cuda()
+# model = VisionTransformer(embed_layer=PatchEmbed ,weight_init = 'skip').cuda()
+model = VisionTransformerRelPos().cuda()
 model = nn.Sequential(
 PolyOrderModule(grid_size=(14,14), patch_size=(16,16)),
 model).cuda()
