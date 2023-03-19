@@ -41,12 +41,19 @@ for i in range(num_test):
 print("Done")
 # %%
 x = torch.rand((1,3,224,224)).cuda()
-model = timm.models.vision_transformer.vit_tiny_patch16_224(pretrained=True)
+model = timm.create_model("hf_hub:timm/vit_relpos_small_patch16_224.sw_in1k", pretrained=True)
 model = nn.Sequential(
 PolyOrderModule(grid_size=(14,14), patch_size=(16,16)),
 model).cuda()
+
+# set positional bias to zero
+state_dict = model.state_dict()
+for name, param in model.named_parameters():
+    if "rel_pos" in name: 
+        state_dict[name] = torch.zeros(param.shape)
+model.load_state_dict(state_dict)
+
 model.eval()
-model(x)
 
 # %%
 # outliers testsing 
@@ -62,21 +69,29 @@ outliers = torch.load("outliers.pth")
 # model =  PolyOrderModule(patch_size=(16,16), grid_size=(14,14))
 
 for i in range(len(outliers)): 
-    x = outliers[i]["raw"].cuda()
-    x1 = torch.roll(x, outliers[i]["shifts"], (2,3))
-    x2 = torch.roll(x, outliers[i]["shifts1"], (2,3))
-    # p, norm = arrange_polyphases(x, (16,16))
-    # p1, norm1 = arrange_polyphases(x1, (16,16))
-    # p2, norm2 = arrange_polyphases(x2, (16,16))
-    p = model(x)
-    p1 = model(x1)
-    p2 = model(x2)
-    try:
-        assert torch.argmax(p).item() == torch.argmax(p1).item()
-        assert torch.argmax(p2).item() == torch.argmax(p1).item()
-    except:
-        print(i)
-        print(torch.argmax(p).item(), torch.argmax(p1).item(), torch.argmax(p2).item())
+    for j in range(outliers[i]["raw"].shape[0]):
+        x = outliers[i]["raw"][j].cuda()
+        x1 = torch.roll(x, outliers[i]["shifts"], (2,3))
+        x2 = torch.roll(x, outliers[i]["shifts1"], (2,3))
+        # p, norm = arrange_polyphases(x, (16,16))
+        # p1, norm1 = arrange_polyphases(x1, (16,16))
+        # p2, norm2 = arrange_polyphases(x2, (16,16))
+        # p = model(x)
+        p1 = model(x1)
+        p2 = model(x2)
+        y = PolyOrder.apply(x, (14,14), (16,16))
+        y1 = PolyOrder.apply(x1, (14,14), (16,16))
+        y2 = PolyOrder.apply(x2, (14,14), (16,16))
+        print(outliers[i]["shifts"], '{0:.16f}'.format(torch.linalg.norm(y1[:,:,0::16, 0::16])))
+        print(outliers[i]["shifts1"], '{0:.16f}'.format(torch.linalg.norm(y2[:,:,0::16, 0::16])))
+        
+
+        try:
+        #     assert torch.argmax(p).item() == torch.argmax(p1).item()
+            assert torch.argmax(p2).item() == torch.argmax(p1).item()
+        except:
+            print(i)
+            print(torch.argmax(p1).item(), torch.argmax(p2).item())
 
 
     # plt.imshow(p[0].permute(1,2,0).cpu())
@@ -90,3 +105,7 @@ for i in range(len(outliers)):
     
 # %%
 
+# why is the initialized model 100% consistent whereas the trained model is not? 
+# train model contains positional bias which does not guarantee equivariance 
+# polyorder assumption being violated -  but this should apply to both untrained and trianed model 
+# it is curious why initialized model is equivariant if poly order plays a role 

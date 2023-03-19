@@ -19,14 +19,24 @@ def confirm_bijective_matches_batch(y,y1):
         y1_img = y1[i]
         confirm_bijective_matches(y_img, y1_img)
 
-def find_similar(anchor:np.array, y_search:np.array, threshold:float):
+# torch version
+def find_similar(anchor:torch.tensor, y_search:torch.tensor, threshold:float):
     ''' Find matching of anchor in y_search matrix
     '''
     matches = []
     for i in range(y_search.shape[0]):
-        if np.linalg.norm(anchor - y_search[i]) < threshold:
+        if torch.linalg.norm(anchor - y_search[i]) < threshold:
             matches.append(i)
     return matches
+
+# def find_similar(anchor:np.array, y_search:np.array, threshold:float):
+#     ''' Find matching of anchor in y_search matrix
+#     '''
+#     matches = []
+#     for i in range(y_search.shape[0]):
+#         if np.linalg.norm(anchor - y_search[i]) < threshold:
+#             matches.append(i)
+#     return matches
 
 
 def confirm_bijective_matches(y, y1): 

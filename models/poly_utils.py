@@ -5,12 +5,14 @@ import torch.utils.checkpoint as checkpoint
 from timm.models.layers import DropPath, to_2tuple, trunc_normal_
 from torch.nn.functional import affine_grid, pad, grid_sample
 from torchvision.transforms.functional import crop
+from timm.models.twins import LocallyGroupedAttn
 
 class PolyOrder(torch.autograd.Function):
     @staticmethod
-    def forward (ctx, x, grid_size, patch_size, norm =2,  invariance = False, use_gpu = True):
+    def forward (ctx, x, patch_size, norm =2,  invariance = False, use_gpu = True):
         device = "cuda" if use_gpu else "cpu"
         B, C, H, W = x.shape
+        grid_size = (H//patch_size[0], W//patch_size[1])
         tmp = x.clone()
         tmp = tmp.view(B,C,grid_size[0], patch_size[0], grid_size[0], patch_size[1] )
         tmp = torch.permute(tmp, (0,1,2, 4,3,5))
@@ -24,18 +26,21 @@ class PolyOrder(torch.autograd.Function):
         py = idx%patch_size[1]
         if invariance:
         # choose the polyphase based on its idx and patch_size 
-            px = (idx/patch_size[0]).int()
-            py = idx%patch_size[1]
-            norm1 = torch.linalg.norm(x[:,:, px::patch_size[0], py::patch_size[1]].permute(0,2,3,1).reshape(B, -1, C), dim=2, ord=norm)
+            norm1 = torch.zeros((B,grid_size[0]*grid_size[1]), requires_grad=False).to(device).float()
+            ## TODO: fix bug, use tmp to find maximum norm for all images in a batch
+            for i in range(B):
+                norm1[i] = torch.linalg.norm(x[i,:, px[i]::patch_size[0], py[i]::patch_size[1]].permute(1,2,0).reshape(-1, C), dim=1)
             idx1 = torch.argmax(norm1, dim=1).int()
             px1 = (idx1/grid_size[0]).int()*patch_size[0]
             py1 = idx1%grid_size[1]*patch_size[1]
             px = px1 + px
             py = py1 + py
-
         theta = torch.zeros((B,2,3), requires_grad=False).to(device).float()
-        theta[:,0, 0] = 1; theta[:,1,1] = 1;
-        l = patch_size[0]-1
+        theta[:,0, 0] = 1; theta[:,1,1] = 1
+        if invariance:
+            l = H-1
+        else:
+            l = patch_size[0]-1
         x = pad(x, (0,l,0,l) ,"circular").float()
         theta[:,1,2]  = px*2/x.shape[2]
         theta[:,0,2] = py*2/x.shape[3] 
@@ -46,6 +51,7 @@ class PolyOrder(torch.autograd.Function):
         return  x
     
     @staticmethod
+    #TODO: implement invariance for backward pass
     def backward(ctx,grad_in):
         # breakpoint()
         # import pdb 
@@ -61,7 +67,7 @@ class PolyOrder(torch.autograd.Function):
 
 
 class PolyOrderModule(nn.Module):
-    def __init__(self, grid_size, patch_size, norm =2, invariance = False, use_gpu = True):
+    def __init__(self, patch_size, norm =2, invariance = False, use_gpu = True):
         super().__init__()
         self.grid_size = grid_size
         self.patch_size = patch_size
@@ -69,7 +75,8 @@ class PolyOrderModule(nn.Module):
         self.use_gpu = use_gpu
         self.invariance = invariance
     def forward(self, x):
-        return PolyOrder.apply(x, self.grid_size, self.patch_size, self.norm, self.invariance, self.use_gpu)
+        grid_size = (x.shape[2]//self.patch_size[0], x.shape[3]//self.patch_size[1])
+        return PolyOrder.apply(x, self.patch_size, self.norm, self.invariance, self.use_gpu)
 
 class PolyPatch(nn.Module): 
     r""" PolyPatch Layer: 
@@ -80,27 +87,26 @@ class PolyPatch(nn.Module):
         out_chans (int): output dimensions
         norm_layer : nn.LayerNorm if patch merging layer, None if image patching layer
     """
-    def __init__(self, input_resolution, patch_size, in_chans, out_chans, norm_layer= None):
+    def __init__(self, patch_size, in_chans, out_chans, norm_layer= None, return_size = False):
         super().__init__()
-        self.input_resolution = input_resolution
         self.patch_size = to_2tuple(patch_size) 
         self.in_chans = in_chans 
         self.out_chans = out_chans
-        self.grid_size = [input_resolution[0] // patch_size, input_resolution[1] // patch_size] 
-        self.patches_resolution = self.grid_size
-        self.num_patches = self.patches_resolution[0] * self.patches_resolution[1]
-
         self.proj = nn.Conv2d(in_chans, out_chans, kernel_size=patch_size, stride = patch_size, padding_mode = "circular")
         self.norm = norm_layer(out_chans) if norm_layer else nn.Identity()
-    
+        self.return_size = return_size
+
     def forward(self, x, invariance = False):
             B, C, H, W = x.shape
-            assert H == self.input_resolution[0] and W == self.input_resolution[1], \
-                f"Input image size ({H}*{W}) doesn't match model ({self.img_size[0]}*{self.img_size[1]})."
-            x = PolyOrder.apply(x, self.grid_size, self.patch_size)
+            input_resolution = (H,W) 
+            self.grid_size = [input_resolution[0] // self.patch_size[0], input_resolution[1] // self.patch_size[1]] 
+            self.patches_resolution = self.grid_size
+            x = PolyOrder.apply(x, self.patch_size)
             x = self.proj(x).flatten(2).transpose(1, 2)
             if self.norm is not None:
                 x = self.norm(x)
+            if self.return_size:
+                return x, self.patches_resolution
             return x
 
     def flops(self):
@@ -143,3 +149,4 @@ def arrange_polyphases(x, patch_size):
     tmp = tmp.contiguous()
     norm = torch.linalg.vector_norm(tmp, dim=(2,3))
     return tmp, norm 
+

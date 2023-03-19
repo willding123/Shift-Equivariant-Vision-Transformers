@@ -44,7 +44,7 @@ class PolyOrder(torch.autograd.Function):
         del tmp
         idx = torch.argmax(norm, dim=1).int()
         theta = torch.zeros((B,2,3), requires_grad=False).to(device).float()
-        theta[:,0, 0] = 1; theta[:,1,1] = 1;
+        theta[:,0, 0] = 1; theta[:,1,1] = 1
         l = patch_size[0]-1
         x = pad(x, (0,l,0,l) ,"circular").float()
         theta[:,1,2]  = (idx/patch_size[0]).int()*2/x.shape[2]
