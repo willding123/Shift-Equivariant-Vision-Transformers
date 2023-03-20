@@ -47,7 +47,8 @@ data_path = '/fs/cml-datasets/ImageNet/ILSVRC2012/val'
 # model = VisionTransformerRelPos()
 # model = timm.create_model("hf_hub:timm/vit_relpos_small_patch16_224.sw_in1k", pretrained=True)
 # model = timm.create_model("twins_pcpvt_small")
-model = timm.create_model("twins_svt_small", pretrained=True).cuda()
+# model = timm.create_model("twins_svt_small", pretrained=True).cuda()
+model = timm.create_model("hf_hub:timm/vit_small_patch16_224.augreg_in21k_ft_in1k", pretrained=True)
 
 # model = torch.nn.Sequential(
 # PolyOrderModule(grid_size=(56,56), patch_size=(4,4)),

@@ -137,6 +137,22 @@ def copy_model_weights(swin_model: torch.nn.Module, swin_poly_model: torch.nn.Mo
     print("weights_copied: {}".format(weights_copied))
     return swin_poly_model
 
+class PosConv(nn.Module):
+    # PEG  from https://arxiv.org/abs/2102.10882
+    def __init__(self, in_chans, embed_dim=768, stride=1):
+        super(PosConv, self).__init__()
+        self.proj = nn.Sequential(nn.Conv2d(in_chans, embed_dim, 3, stride, 1, bias=True, groups=embed_dim, padding_mode='circular'), )
+        self.stride = stride
+
+    def forward(self, x):
+        B, N, C = x.shape
+        cnn_feat_token = x.transpose(1, 2).view(B, C, *size)
+        x = self.proj(cnn_feat_token)
+        if self.stride == 1:
+            x += cnn_feat_token
+        x = x.flatten(2).transpose(1, 2)
+        return x
+
 
 def arrange_polyphases(x, patch_size):
     B, C, H, W = x.shape
@@ -149,4 +165,5 @@ def arrange_polyphases(x, patch_size):
     tmp = tmp.contiguous()
     norm = torch.linalg.vector_norm(tmp, dim=(2,3))
     return tmp, norm 
+
 
