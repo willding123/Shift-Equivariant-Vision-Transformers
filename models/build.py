@@ -13,6 +13,7 @@ from .swin_mlp import SwinMLP
 from .simmim import build_simmim
 import timm 
 from .poly_utils import *
+from .polytwins import PolyTwins
 
 
 def build_model(config, is_pretrain=False):
@@ -187,6 +188,9 @@ def build_model(config, is_pretrain=False):
 
     elif model_type == "vit_small_patch16_224":
         model = timm.create_model("hf_hub:timm/vit_small_patch16_224.augreg_in21k_ft_in1k", pretrained=True)
+    
+    elif model_type == "polytwins":
+        model = PolyTwins("twins_svt_small", pretrained=True)
         
     elif model_type == "swin_poly_pretrained":
         swin_model = SwinTransformer( 

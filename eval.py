@@ -47,8 +47,8 @@ data_path = '/fs/cml-datasets/ImageNet/ILSVRC2012/val'
 # model = VisionTransformerRelPos()
 # model = timm.create_model("hf_hub:timm/vit_relpos_small_patch16_224.sw_in1k", pretrained=True)
 # model = timm.create_model("twins_pcpvt_small")
-# model = timm.create_model("twins_svt_small", pretrained=True).cuda()
-model = timm.create_model("hf_hub:timm/vit_small_patch16_224.augreg_in21k_ft_in1k", pretrained=True)
+model = timm.create_model("twins_svt_small", pretrained=True).cuda()
+# model = timm.create_model("hf_hub:timm/vit_small_patch16_224.augreg_in21k_ft_in1k", pretrained=True)
 
 # model = torch.nn.Sequential(
 # PolyOrderModule(grid_size=(56,56), patch_size=(4,4)),
@@ -121,13 +121,13 @@ model = tmp
 #     for b in bs: 
 #         b.mlp.act = nn.ReLU()
 
-# cs = [64, 128, 256, 512]
-# for i, l in enumerate(model.pos_block):
-#     # l.proj = torch.nn.Sequential(torch.nn.Conv2d(cs[i], cs[i], 3, 1, 1, bias=True, groups=cs[i], padding_mode='circular'), )
-#     l.proj[0].padding_mode = "circular"
+cs = [64, 128, 256, 512]
+for i, l in enumerate(model.pos_block):
+    # l.proj = torch.nn.Sequential(torch.nn.Conv2d(cs[i], cs[i], 3, 1, 1, bias=True, groups=cs[i], padding_mode='circular'), )
+    l.proj[0].padding_mode = "circular"
 
-# for i, l in enumerate(model.patch_embeds):
-#     l.proj.padding_mode = "circular"
+for i, l in enumerate(model.patch_embeds):
+    l.proj.padding_mode = "circular"
 
 # #%% vit with rel_pos
 # # set model's parameters to zero if their name contains "rel_pos"

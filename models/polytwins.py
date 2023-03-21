@@ -19,7 +19,13 @@ class PolyTwins(timm.models.twins.Twins):
         self.num_features = model.num_features
         self.embed_dim = model.embed_dims
         self.global_pool = model.global_pool
-        
+        cs = [64, 128, 256, 512]
+        for i, l in enumerate(self.pos_block):
+            l.proj[0].padding_mode = "circular"
+
+        for i, l in enumerate(self.patch_embeds):
+            l.proj.padding_mode = "circular"
+                
     
     def forward_features(self, x):
         B = x.shape[0]
