@@ -94,11 +94,11 @@ class PolyTwins(timm.models.twins.Twins):
             x = drop(x)
             for j, blk in enumerate(blocks):
                 x = x.view(B, int(sqrt(x.shape[1])), -1, x.shape[2]).permute(0, 3, 1, 2)
-                # if type(blk.attn) == LocallyGroupedAttn:                
-                #     x = PolyOrder.apply(x, to_2tuple(blk.attn.ws))
-                # else: 
-                #     if blk.attn.sr_ratio > 1:
-                #         x = PolyOrder.apply(x, to_2tuple(blk.attn.sr_ratio))
+                if type(blk.attn) == LocallyGroupedAttn:                
+                    x = PolyOrder.apply(x, to_2tuple(blk.attn.ws))
+                else: 
+                    if blk.attn.sr_ratio > 1:
+                        x = PolyOrder.apply(x, to_2tuple(blk.attn.sr_ratio))
                     
                 x = x.permute(0, 2, 3, 1)
                 x = x.reshape(B, -1, x.shape[3]).contiguous()
@@ -111,15 +111,6 @@ class PolyTwins(timm.models.twins.Twins):
         return x
 
 tmp = PolyTwins("twins_svt_small", pretrained=True)
-tmp.load_state_dict(model.state_dict())
-model = tmp 
-
-# for m in model.patch_embeds:
-#     m.norm = nn.Identity()
-
-# for bs in model.blocks:
-#     for b in bs: 
-#         b.mlp.act = nn.ReLU()
 
 cs = [64, 128, 256, 512]
 for i, l in enumerate(model.pos_block):

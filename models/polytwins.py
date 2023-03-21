@@ -38,11 +38,11 @@ class PolyTwins(timm.models.twins.Twins):
             x = drop(x)
             for j, blk in enumerate(blocks):
                 x = x.view(B, int(sqrt(x.shape[1])), -1, x.shape[2]).permute(0, 3, 1, 2)
-                # if type(blk.attn) == LocallyGroupedAttn:                
-                #     x = PolyOrder.apply(x, to_2tuple(blk.attn.ws))
-                # else: 
-                #     if blk.attn.sr_ratio > 1:
-                #         x = PolyOrder.apply(x, to_2tuple(blk.attn.sr_ratio))
+                if type(blk.attn) == LocallyGroupedAttn:                
+                    x = PolyOrder.apply(x, to_2tuple(blk.attn.ws))
+                else: 
+                    if blk.attn.sr_ratio > 1:
+                        x = PolyOrder.apply(x, to_2tuple(blk.attn.sr_ratio))
                     
                 x = x.permute(0, 2, 3, 1)
                 x = x.reshape(B, -1, x.shape[3]).contiguous()
