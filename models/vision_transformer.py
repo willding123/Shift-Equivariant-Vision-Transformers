@@ -44,9 +44,14 @@ class PolyViT(timm.models.vision_transformer.VisionTransformer):
         model = timm.create_model(model_type, pretrained=pretrained)
         # copy all model's attributes to self
         for k, v in model.__dict__.items():
-            if k not in {"pos_embed"}:
                 self.__setattr__(k, v)
-            
+
+        self.patch_embed = PolyPatchEmbed(
+            patch_size = self.patch_embed.patch_size,
+            in_chans = self.patch_embed.in_chans, 
+            out_chans = self.patch_embed.embed_dim,
+            norm_layer = self.patch_embed.norm
+            )
         self.pos_embed = None
         self.pos_conv = PosConv(self.embed_dim, self.embed_dim)
         

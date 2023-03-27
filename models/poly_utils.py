@@ -77,8 +77,8 @@ class PolyOrderModule(nn.Module):
         grid_size = (x.shape[2]//self.patch_size[0], x.shape[3]//self.patch_size[1])
         return PolyOrder.apply(x, self.patch_size, self.norm, self.invariance, self.use_gpu)
 
-class PolyPatch(nn.Module): 
-    r""" PolyPatch Layer: 
+class PolyPatchEmbed(nn.Module): 
+    r""" PolyPatchEmbed Layer: 
     Args: 
         input_resolution (tuple of int): input resolution i.e img_size 
         patch_size (int): patch size (number of pixels in a patch)
