@@ -3,6 +3,7 @@ from timm.models.twins import LocallyGroupedAttn
 from models.poly_utils import PolyOrderModule, arrange_polyphases, PolyPatch, PolyOrder
 from timm.models.twins import Twins
 from timm.models.layers import to_2tuple
+from math import sqrt
  
 class PolyTwins(timm.models.twins.Twins):
     def __init__(self, model_type, pretrained = False, **kwargs):
@@ -38,11 +39,11 @@ class PolyTwins(timm.models.twins.Twins):
             x = drop(x)
             for j, blk in enumerate(blocks):
                 x = x.view(B, int(sqrt(x.shape[1])), -1, x.shape[2]).permute(0, 3, 1, 2)
-                # if type(blk.attn) == LocallyGroupedAttn:                
-                #     x = PolyOrder.apply(x, to_2tuple(blk.attn.ws))
-                # else: 
-                #     if blk.attn.sr_ratio > 1:
-                #         x = PolyOrder.apply(x, to_2tuple(blk.attn.sr_ratio))
+                if type(blk.attn) == LocallyGroupedAttn:                
+                    x = PolyOrder.apply(x, to_2tuple(blk.attn.ws))
+                else: 
+                    if blk.attn.sr_ratio > 1:
+                        x = PolyOrder.apply(x, to_2tuple(blk.attn.sr_ratio))
                     
                 x = x.permute(0, 2, 3, 1)
                 x = x.reshape(B, -1, x.shape[3]).contiguous()
