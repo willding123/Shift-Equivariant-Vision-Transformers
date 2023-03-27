@@ -28,13 +28,12 @@ from models.vision_transformer import PolyViT
 # eliminate relu
 # eliminate circular padding
 # add layernorm for patch embed
-job = {"norelu":0}
 
 # variables 
 batch_size = 128
 roll = True
 shift_size = 15
-model_type = "timm"
+model_type = ""
 # Define the location of the validation dataset
 # data_path = '/home/pding/scratch.cmsc663/val'
 data_path = '/fs/cml-datasets/ImageNet/ILSVRC2012/val'
@@ -47,12 +46,12 @@ data_path = '/fs/cml-datasets/ImageNet/ILSVRC2012/val'
 # model = VisionTransformerRelPos()
 # model = timm.create_model("hf_hub:timm/vit_relpos_small_patch16_224.sw_in1k", pretrained=True)
 # model = timm.create_model("twins_pcpvt_small")
-# model = timm.create_model("twins_svt_small", pretrained=True).cuda()
-model = PolyViT("hf_hub:timm/vit_small_patch16_224.augreg_in21k_ft_in1k", pretrained=True)
+model = timm.create_model("twins_svt_small", pretrained=True).cuda()
+# model = PolyViT("hf_hub:timm/vit_small_patch16_224.augreg_in21k_ft_in1k", pretrained=True)
 
-model = torch.nn.Sequential(
-PolyOrderModule(patch_size=(16,16)),
-model)
+# model = torch.nn.Sequential(
+# PolyOrderModule(patch_size=(16,16)),
+# model)
 
 #%%
 
