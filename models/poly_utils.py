@@ -69,7 +69,6 @@ class PolyOrder(torch.autograd.Function):
 class PolyOrderModule(nn.Module):
     def __init__(self, patch_size, norm =2, invariance = False, use_gpu = True):
         super().__init__()
-        self.grid_size = grid_size
         self.patch_size = patch_size
         self.norm = norm
         self.use_gpu = use_gpu
@@ -146,7 +145,7 @@ class PosConv(nn.Module):
 
     def forward(self, x):
         B, N, C = x.shape
-        cnn_feat_token = x.transpose(1, 2).view(B, C, *size)
+        cnn_feat_token = x.transpose(1, 2).view(B, C, -1)
         x = self.proj(cnn_feat_token)
         if self.stride == 1:
             x += cnn_feat_token

@@ -16,13 +16,13 @@ from config import _C
 from models.build import build_model
 import matplotlib.pyplot as plt 
 from tqdm import tqdm
-from models.vision_transformer import VisionTransformer
 from timm.models.layers import PatchEmbed
 from models.poly_utils import PolyOrderModule, arrange_polyphases, PolyPatch, PolyOrder
 from timm.models.twins import Twins
 from timm.models.layers import to_2tuple
 from timm.models.twins import LocallyGroupedAttn
 from math import sqrt
+from models.vision_transformer import PolyViT
 
 # test 100% consistent model (relu, circular pos block, no layernorm for patch embed)
 # eliminate relu
@@ -47,12 +47,12 @@ data_path = '/fs/cml-datasets/ImageNet/ILSVRC2012/val'
 # model = VisionTransformerRelPos()
 # model = timm.create_model("hf_hub:timm/vit_relpos_small_patch16_224.sw_in1k", pretrained=True)
 # model = timm.create_model("twins_pcpvt_small")
-model = timm.create_model("twins_svt_small", pretrained=True).cuda()
-# model = timm.create_model("hf_hub:timm/vit_small_patch16_224.augreg_in21k_ft_in1k", pretrained=True)
+# model = timm.create_model("twins_svt_small", pretrained=True).cuda()
+model = PolyViT("hf_hub:timm/vit_small_patch16_224.augreg_in21k_ft_in1k", pretrained=True)
 
-# model = torch.nn.Sequential(
-# PolyOrderModule(grid_size=(56,56), patch_size=(4,4)),
-# model).cuda()
+model = torch.nn.Sequential(
+PolyOrderModule(patch_size=(16,16)),
+model)
 
 #%%
 
@@ -66,68 +66,6 @@ def debug_polyphasex(x, patch_size):
 
 debugger = {}
 
-class PolyTwins(timm.models.twins.Twins):
-    def __init__(self, model_type, pretrained = False, **kwargs):
-        super().__init__()
-        model = timm.create_model(model_type , pretrained=pretrained)
-        self.patch_embeds = model.patch_embeds
-        self.pos_drops = model.pos_drops
-        self.blocks = model.blocks
-        self.pos_block = model.pos_block
-        self.norm = model.norm
-        self.head = model.head
-        self.depths = model.depths
-        self.num_classes = model.num_classes
-        self.num_features = model.num_features
-        self.embed_dim = model.embed_dims
-        self.global_pool = model.global_pool
-        
-    
-    def forward_features(self, x):
-        B = x.shape[0]
-        tmp = x.clone()
-        for i, (embed, drop, blocks, pos_blk) in enumerate(
-                zip(self.patch_embeds, self.pos_drops, self.blocks, self.pos_block)):        
-            if i == 0:
-                x = PolyOrder.apply(x, embed.proj.kernel_size)
-            x, size = embed(x)
-            x = drop(x)
-            for j, blk in enumerate(blocks):
-                x = x.view(B, int(sqrt(x.shape[1])), -1, x.shape[2]).permute(0, 3, 1, 2)
-                # if type(blk.attn) == LocallyGroupedAttn:                
-                #     x = PolyOrder.apply(x, to_2tuple(blk.attn.ws))
-                # else: 
-                #     if blk.attn.sr_ratio > 1:
-                #         x = PolyOrder.apply(x, to_2tuple(blk.attn.sr_ratio))
-                    
-                x = x.permute(0, 2, 3, 1)
-                x = x.reshape(B, -1, x.shape[3]).contiguous()
-                x = blk(x, size)
-                if j == 0:
-                    x = pos_blk(x, size)  # PEG here
-            if i < len(self.depths) - 1:
-                x = x.reshape(B, *size, -1).permute(0, 3, 1, 2).contiguous()
-        x = self.norm(x)
-        return x
-
-tmp = PolyTwins("twins_svt_small", pretrained=True)
-tmp.load_state_dict(model.state_dict())
-model = tmp 
-
-# for m in model.patch_embeds:
-#     m.norm = nn.Identity()
-
-# for bs in model.blocks:
-#     for b in bs: 
-#         b.mlp.act = nn.ReLU()
-
-cs = [64, 128, 256, 512]
-for i, l in enumerate(model.pos_block):
-    # l.proj = torch.nn.Sequential(torch.nn.Conv2d(cs[i], cs[i], 3, 1, 1, bias=True, groups=cs[i], padding_mode='circular'), )
-    l.proj[0].padding_mode = "circular"
-
-for i, l in enumerate(model.patch_embeds):
-    l.proj.padding_mode = "circular"
 
 # #%% vit with rel_pos
 # # set model's parameters to zero if their name contains "rel_pos"
@@ -263,106 +201,4 @@ with torch.no_grad():
 print("Time Elapsed {:.4f}".format(end_time))
 print('Average Loss: {:.4f}, Accuracy: {:.4f}, Consistency {:.4f}'.format(average_loss, accuracy, consistency))
 
-job["consistent"] = {"consistency": consistency, "accuracy": accuracy, "average_loss": average_loss, "time": end_time}
-# export job as json file
-# with open(f"~/job_consistent.json", "w") as f:
-#     json.dump(job, f, indent=4)
-###########
-###########
-### full design: accuracy: 0.0012 consistency 100%
-### fully_consistent_model (FCM) - relu: Average Loss: 6.9410, Accuracy: 0.0012, Consistency 1.0000
-### FCM - circular - relu: Average Loss: 6.9446, Accuracy: 0.0008, Consistency 0.8746
-### FCM - circular - relu + layernorm: Average Loss: 6.9342, Accuracy: 0.0012, Consistency 0.8171
-### Pretrain + Polyorder only at patch embedding stage 
-###########
-###########
 #%%
-
-# would it be more consistent if I tune the patch size, and lp norm? 
-idx = (predicted != predicted1).nonzero()[0]
-
-# debugging twins 
-embed = model.patch_embeds[3]
-blocks = model.blocks[3]
-pos_blk = model.pos_block[3]
-norm = model.norm
-
-# x = images[idx]
-# B,C,H,W = x.shape
-# xs = torch.roll(x, shifts, (2,3))
-# xs1 = torch.roll(x, shifts1, (2,3))
-
-# embedding tests
-x = PolyOrder.apply(x, embed.proj.kernel_size)
-xs = PolyOrder.apply(xs, embed.proj.kernel_size)
-xs1 = PolyOrder.apply(xs1, embed.proj.kernel_size)
-x, size = embed(x)
-xs, _ = embed(xs)
-xs1, _ = embed(xs1)
-
-from utils import find_shift2d_batch, shift_and_compare
-
-t = x.view(B, int(sqrt(x.shape[1])), int(sqrt(x.shape[1])), x.shape[2])
-ts = xs.view(B, int(sqrt(x.shape[1])), int(sqrt(x.shape[1])), x.shape[2])
-ts1 = xs1.view(B, int(sqrt(x.shape[1])), int(sqrt(x.shape[1])), x.shape[2])
-
-
-s1 = find_shift2d_batch(t,ts, early_break = False)
-s2 = find_shift2d_batch(ts,ts1, early_break = False)
-shift_and_compare(t, ts, s1, (0,1) )
-shift_and_compare(ts, ts1, s2, (0,1) )
-
-# block tests
-def block_forward(x, size):
-    for j, blk in enumerate(blocks):
-        x = x.view(B, int(sqrt(x.shape[1])), -1, x.shape[2]).permute(0, 3, 1, 2)
-        if type(blk.attn) == LocallyGroupedAttn:
-            _, n = arrange_polyphases(x, to_2tuple(blk.attn.ws))
-            try:
-                assert torch.topk(n, 2).values[0][0] != torch.topk(n, 2).values[0][1]
-            except:
-                print(j, torch.topk(n, 2).values[0])
-                break
-            x = PolyOrder.apply(x, to_2tuple(blk.attn.ws))
-            
-        else: 
-            x = PolyOrder.apply(x, to_2tuple(blk.attn.sr_ratio))
-        x = x.permute(0, 2, 3, 1)
-        x = x.reshape(B, -1, x.shape[3]).contiguous()
-        x = blk(x, size)
-        if j == 0:
-            x = pos_blk(x, size) 
-    return x
-
-x = block_forward(x, size)
-xs = block_forward(xs, size)
-xs1 = block_forward(xs1, size)
-
-t = x.view(B, int(sqrt(x.shape[1])), int(sqrt(x.shape[1])), x.shape[2])
-ts = xs.view(B, int(sqrt(x.shape[1])), int(sqrt(x.shape[1])), x.shape[2])
-ts1 = xs1.view(B, int(sqrt(x.shape[1])), int(sqrt(x.shape[1])), x.shape[2])
-
-s1 = find_shift2d_batch(t,ts, early_break = False)
-s2 = find_shift2d_batch(ts,ts1, early_break = False)
-shift_and_compare(t, ts, s1, (0,1) )
-shift_and_compare(ts, ts1, s2, (0,1) )
-
-# x = x.reshape(B, *size, -1).permute(0, 3, 1, 2).contiguous()
-# xs = xs.reshape(B, *size, -1).permute(0, 3, 1, 2).contiguous()
-# xs1 = xs1.reshape(B, *size, -1).permute(0, 3, 1, 2).contiguous()
-
-
-# %%
-head = model.head
-x = x.mean(dim=1)
-xs = xs.mean(dim=1)
-xs1 = xs1.mean(dim=1)
-x = head(x)
-xs = head(xs)
-xs1 = head(xs1)
-
-# write a subclass called PolyTwins that inherits from timm.models.twins.Twins
-
-# %%
-x = debugger["x"]
-model(x)
