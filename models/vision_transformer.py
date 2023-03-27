@@ -37,22 +37,24 @@ import torch.nn.functional as F
 import torch.utils.checkpoint
 from models.poly_utils import *
 from timm.models.layers import PatchEmbed, Mlp, DropPath, trunc_normal_, lecun_normal_
-from poly_utils import PosConv
-
-class VisionTransformer(timm.models.vision_transformer.VisionTransformer):
+import timm 
+class PolyViT(timm.models.vision_transformer.VisionTransformer):
     def __init__(self, model_type, pretrained = False, **kwargs):
         super().__init__()
         model = timm.create_model(model_type, pretrained=pretrained)
         # copy all model's attributes to self
         for k, v in model.__dict__.items():
-            self.__setattr__(k, v)
-        self.pos_embed = PosConv(self.patch_embeds[0].num_patches, self.embed_dims[0], stride=self.patch_embeds[0].patch_size)
+            if k not in {"pos_embed"}:
+                self.__setattr__(k, v)
+            
+        self.pos_embed = None
+        self.pos_conv = PosConv(self.embed_dim, self.embed_dim)
         
     def _pos_embed(self, x):
         if self.no_embed_class:
             # deit-3, updated JAX (big vision)
             # position embedding does not overlap with class token, add then concat
-            x = self.pos_embed(x)
+            x = self.pos_conv(x)
             if self.cls_token is not None:
                 x = torch.cat((self.cls_token.expand(x.shape[0], -1, -1), x), dim=1)
         else:
@@ -60,7 +62,7 @@ class VisionTransformer(timm.models.vision_transformer.VisionTransformer):
             # pos_embed has entry for class token, concat then add
             if self.cls_token is not None:
                 x = torch.cat((self.cls_token.expand(x.shape[0], -1, -1), x), dim=1)
-            x = self.pos_embed(x)
+            x = self.pos_conv(x)
         return self.pos_drop(x)
 
     
