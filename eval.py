@@ -38,7 +38,7 @@ def parse_args():
     parser.add_argument('--num_workers', type=int, default = 8, required=False, metavar="FILE", help='number of workers')
     parser.add_argument ("--pretrained_path", type=str, default = None, required=False, metavar="FILE", help="pretrained model path")
     parser.add_argument("--affine", type=bool, default = False, required=False, metavar="FILE", help="whether enable affine attack")
-    parser.add_argument("--break", type=bool, default = False, required=False, metavar="FILE", help="break the loop if there are enough inconsistent predictions")
+    parser.add_argument("--breaking", type=bool, default = False, required=False, metavar="FILE", help="break the loop if there are enough inconsistent predictions")
     args, unparsed = parser.parse_known_args()
     return args
 
@@ -182,17 +182,18 @@ def main(args):
                 
                 # Update the total number of images
                 total += labels.size(0)
-                # try: 
-                #     # assert the entry difference between two output vectors is less than 1e-5
-                #     assert (predicted == predicted1).all()
-                # except: 
-                #     # get index of all the different entries
-                #     diff = (predicted != predicted1).nonzero()
-                #     outliers.append({"raw":raw[diff].cpu(), "shifts": shifts, "shifts1": shifts1})
-            
-                # if outliers.__len__() > 1:
-                #     print(f"got  {len(outliers)} outliers")
-                #     break
+                if args.breaking:
+                    try: 
+                        # assert the entry difference between two output vectors is less than 1e-5
+                        assert (predicted == predicted1).all()
+                    except: 
+                        # get index of all the different entries
+                        diff = (predicted != predicted1).nonzero()
+                        outliers.append({"raw":raw[diff].cpu(), "shifts": shifts, "shifts1": shifts1})
+                
+                    if outliers.__len__() > 1:
+                        print(f"got  {len(outliers)} outliers")
+                        break
 
                 # Compute the average loss and accuracy over all batches
         average_loss = total_loss / total
