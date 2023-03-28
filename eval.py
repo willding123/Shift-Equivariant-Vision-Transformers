@@ -26,7 +26,7 @@ from models.vision_transformer import PolyViT
 from models.polytwins import PolyTwins
 import argparse
 
-## TODO: add affine attack, crop attack, and random perspective attack
+## TODO: 1. add affine attack, crop attack, and random perspective attack
 def parse_args():
     parser = argparse.ArgumentParser('Evaluation script', add_help=False)
     parser.add_argument('--model', type=str, required=True, metavar="FILE", help='model name' )
@@ -38,7 +38,7 @@ def parse_args():
     parser.add_argument('--num_workers', type=int, default = 8, required=False, metavar="FILE", help='number of workers')
     parser.add_argument ("--pretrained_path", type=str, default = None, required=False, metavar="FILE", help="pretrained model path")
     parser.add_argument("--affine", type=bool, default = False, required=False, metavar="FILE", help="whether enable affine attack")
-    
+    parser.add_argument("--break", type=bool, default = False, required=False, metavar="FILE", help="break the loop if there are enough inconsistent predictions")
     args, unparsed = parser.parse_known_args()
     return args
 
@@ -79,10 +79,16 @@ def main(args):
         else: 
             model = PolyTwins("twins_svt_small", pretrained=True)
     else: 
+        raise NotImplementedError
+    
+    if args.pretrained_path:
         config  = _C.clone()
         config.MODEL.TYPE = args.model
         config.MODEL.PRETRAIN_PATH = args.pretrained_path
-        model = build_model(config, is_pretrain=True)
+        try: 
+            model = build_model(config, is_pretrain=True)
+        except:
+            raise NotImplementedError
 
     model = model.to(device)
 
