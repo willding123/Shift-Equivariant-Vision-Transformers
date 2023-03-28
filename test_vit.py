@@ -1,6 +1,6 @@
 #%% 
 import torch 
-from models.vision_transformer import VisionTransformer
+from models.vision_transformer import PolyViT
 from timm.models.vision_transformer_relpos import VisionTransformerRelPos
 import numpy as np 
 from timm.models.layers import PatchEmbed, Mlp, DropPath, trunc_normal_, lecun_normal_
@@ -13,17 +13,18 @@ import matplotlib.pyplot as plt
 #%% 
 x = torch.rand((1,3,224,224)).cuda()
 num_test = 10000
+model = PolyViT("hf_hub:timm/vit_base_patch16_224.augreg_in21k_ft_in1k", pretrained=True).cuda()
 # config  = _C.clone()
 # config.MODEL.TYPE = "vit_poly_base"
 # config.MODEL.PRETRAIN_PATH = "/home/pding/scratch.cmsc663/poly_vit_base_0227/default/ckpt_epoch_173.pth"
 # config.MODEL.PRETRAIN_PATH = "/home/pding/scratch.cmsc663/poly_vit_small_0228/default/ckpt_epoch_299.pth"
 # model = build_model(config, is_pretrain=True).cuda()
 # model = VisionTransformer(embed_layer=PatchEmbed ,weight_init = 'skip').cuda()
-model = VisionTransformerRelPos().cuda()
-model = nn.Sequential(
-PolyOrderModule(grid_size=(14,14), patch_size=(16,16)),
-model).cuda()
-model.eval()
+# model = VisionTransformerRelPos().cuda()
+# model = nn.Sequential(
+# PolyOrderModule(grid_size=(14,14), patch_size=(16,16)),
+# model).cuda()
+
 #%%
 for i in range(num_test):
     shifts = tuple(np.random.randint(0,16,2))

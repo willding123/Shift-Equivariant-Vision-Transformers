@@ -166,3 +166,13 @@ def arrange_polyphases(x, patch_size):
     return tmp, norm 
 
 
+
+def debug_polyphase(x, patch_size):
+    _, n = arrange_polyphases(x, patch_size)
+    try:
+        assert torch.topk(n, 2).values[0][0] != torch.topk(n, 2).values[0][1]
+    except:
+        print("polyphases are not unique")
+        breakpoint()
+
+debugger = {}

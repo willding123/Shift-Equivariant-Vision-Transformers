@@ -48,7 +48,7 @@ class PolyViT(timm.models.vision_transformer.VisionTransformer):
 
         self.patch_embed = PolyPatchEmbed(
             patch_size = self.patch_embed.patch_size,
-            in_chans = self.patch_embed.in_chans, 
+            in_chans = self.patch_embed.proj.in_chans, 
             out_chans = self.patch_embed.embed_dim,
             norm_layer = self.patch_embed.norm
             )

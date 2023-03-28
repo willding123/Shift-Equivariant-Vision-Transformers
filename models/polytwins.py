@@ -1,6 +1,6 @@
 import timm 
 from timm.models.twins import LocallyGroupedAttn
-from models.poly_utils import PolyOrderModule, arrange_polyphases, PolyPatch, PolyOrder
+from models.poly_utils import PolyOrderModule, arrange_polyphases, PolyPatchEmbed, PolyOrder
 from timm.models.twins import Twins
 from timm.models.layers import to_2tuple
 from math import sqrt
