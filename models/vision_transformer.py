@@ -46,12 +46,12 @@ class PolyViT(timm.models.vision_transformer.VisionTransformer):
         for k, v in model.__dict__.items():
                 self.__setattr__(k, v)
 
-        self.patch_embed = PolyPatchEmbed(
-            patch_size = self.patch_embed.patch_size,
-            in_chans = self.patch_embed.proj.in_chans, 
-            out_chans = self.patch_embed.embed_dim,
-            norm_layer = self.patch_embed.norm
-            )
+        # self.patch_embed = PolyPatchEmbed(
+        #     patch_size = self.patch_embed.patch_size,
+        #     in_chans = self.patch_embed.proj.in_channels, 
+        #     out_chans = self.patch_embed.proj.out_channels,
+        #     norm_layer = self.patch_embed.norm
+        #     )
         self.pos_embed = None
         self.pos_conv = PosConv(self.embed_dim, self.embed_dim)
         
