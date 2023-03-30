@@ -136,21 +136,29 @@ def copy_model_weights(swin_model: torch.nn.Module, swin_poly_model: torch.nn.Mo
     print("weights_copied: {}".format(weights_copied))
     return swin_poly_model
 
+
+def circular_pad(tensor, pad):
+    return torch.cat((tensor[..., -pad:], tensor, tensor[..., :pad]), dim=-1)
+
 class PosConv(nn.Module):
     # PEG  from https://arxiv.org/abs/2102.10882
     def __init__(self, in_chans, embed_dim=768, stride=1):
         super(PosConv, self).__init__()
-        self.proj = nn.Sequential(nn.Conv2d(in_chans, embed_dim, 3, stride, 1, bias=True, groups=embed_dim, padding_mode='circular'), )
+        
+        self.conv = nn.Conv2d(in_chans, embed_dim, 3, stride, 0, bias=True, groups=embed_dim)
         self.stride = stride
 
     def forward(self, x):
         B, N, C = x.shape
         cnn_feat_token = x.transpose(1, 2).view(B, C, -1)
-        x = self.proj(cnn_feat_token)
+        print("cnn_feat_token.shape: {}".format(cnn_feat_token.shape))
+        cnn_feat_token_padded = circular_pad(cnn_feat_token, 1)
+        x = self.conv(cnn_feat_token_padded)
         if self.stride == 1:
             x += cnn_feat_token
         x = x.flatten(2).transpose(1, 2)
         return x
+
 
 
 def arrange_polyphases(x, patch_size):
