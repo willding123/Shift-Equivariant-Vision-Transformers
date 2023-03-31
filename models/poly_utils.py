@@ -145,22 +145,22 @@ class PosConv(nn.Module):
     # PEG  from https://arxiv.org/abs/2102.10882
     def __init__(self, in_chans, embed_dim=768, stride=1):
         super(PosConv, self).__init__()
-        print("in_chans: {}".format(in_chans))
-        print("embed_dim: {}".format(embed_dim))
-        print("stride: {}".format(stride))
+        # print("in_chans: {}".format(in_chans))
+        # print("embed_dim: {}".format(embed_dim))
+        # print("stride: {}".format(stride))
         self.proj = nn.Conv2d(in_chans, embed_dim, 3, stride, 1, bias=True, groups=embed_dim, padding_mode='circular')
         # self.proj = nn.Sequential(nn.Conv2d(in_chans, embed_dim, 3, stride, 0, bias=True, groups=embed_dim), )
         # self.conv = nn.Conv2d(in_chans, embed_dim, 3, stride, 0, bias=True, groups=embed_dim)
         self.stride = stride
 
     def forward(self, x, size = None):
-        print("s shape", x.shape)
+        # print("s shape", x.shape)
         # class_token, x = x[:, 0], x[:, 1:]
         B, N, C = x.shape
         if size is None:
             size = (int(math.sqrt(N)), int(math.sqrt(N)))
         cnn_feat_token = x.transpose(1, 2).view(B, C, *size)
-        print("cnn_feat_token.shape: {}".format(cnn_feat_token.shape))
+        # print("cnn_feat_token.shape: {}".format(cnn_feat_token.shape))
         # cnn_feat_token = circular_pad(cnn_feat_token, 1)
         x = self.proj(cnn_feat_token)
         if self.stride == 1:

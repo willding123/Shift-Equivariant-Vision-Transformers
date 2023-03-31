@@ -45,13 +45,13 @@ class PolyViT(timm.models.vision_transformer.VisionTransformer):
         # copy all model's attributes to self
         for k, v in model.__dict__.items():
                 self.__setattr__(k, v)
-        self.no_embed_class = kwargs.get("no_embed_class", False)
-        # self.patch_embed = PolyPatchEmbed(
-        #     patch_size = self.patch_embed.patch_size,
-        #     in_chans = self.patch_embed.proj.in_channels, 
-        #     out_chans = self.patch_embed.proj.out_channels,
-        #     norm_layer = self.patch_embed.norm
-        #     )
+        self.no_embed_class = kwargs.get("no_embed_class", True)
+        self.patch_embed = PolyPatchEmbed(
+            patch_size = self.patch_embed.patch_size,
+            in_chans = self.patch_embed.proj.in_channels, 
+            out_chans = self.patch_embed.proj.out_channels,
+            norm_layer = nn.LayerNorm
+            )
         self.pos_embed = None
         self.pos_conv = PosConv(self.embed_dim, self.embed_dim)
         

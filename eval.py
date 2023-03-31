@@ -38,7 +38,7 @@ def parse_args():
     parser.add_argument('--num_workers', type=int, default = 8, required=False, metavar="FILE", help='number of workers')
     parser.add_argument ("--pretrained_path", type=str, default = None, required=False, metavar="FILE", help="pretrained model path")
     parser.add_argument("--affine", type=bool, default = False, required=False, metavar="FILE", help="whether enable affine attack")
-    parser.add_argument("--breaking", type=bool, default = False, required=False, metavar="FILE", help="break the loop if there are enough inconsistent predictions")
+    parser.add_argument("--breaking", action="store_true", required=False, help="break the loop if there are enough inconsistent predictions")
     args, unparsed = parser.parse_known_args()
     return args
 
