@@ -6,6 +6,7 @@ from timm.models.layers import DropPath, to_2tuple, trunc_normal_
 from torch.nn.functional import affine_grid, pad, grid_sample
 from torchvision.transforms.functional import crop
 from timm.models.twins import LocallyGroupedAttn
+import math
 
 class PolyOrder(torch.autograd.Function):
     @staticmethod
@@ -136,21 +137,37 @@ def copy_model_weights(swin_model: torch.nn.Module, swin_poly_model: torch.nn.Mo
     print("weights_copied: {}".format(weights_copied))
     return swin_poly_model
 
+
+def circular_pad(tensor, pad):
+    return torch.cat((tensor[..., -pad:], tensor, tensor[..., :pad]), dim=-1)
+
 class PosConv(nn.Module):
     # PEG  from https://arxiv.org/abs/2102.10882
     def __init__(self, in_chans, embed_dim=768, stride=1):
         super(PosConv, self).__init__()
-        self.proj = nn.Sequential(nn.Conv2d(in_chans, embed_dim, 3, stride, 1, bias=True, groups=embed_dim, padding_mode='circular'), )
+        print("in_chans: {}".format(in_chans))
+        print("embed_dim: {}".format(embed_dim))
+        print("stride: {}".format(stride))
+        self.proj = nn.Conv2d(in_chans, embed_dim, 3, stride, 1, bias=True, groups=embed_dim, padding_mode='circular')
+        # self.proj = nn.Sequential(nn.Conv2d(in_chans, embed_dim, 3, stride, 0, bias=True, groups=embed_dim), )
+        # self.conv = nn.Conv2d(in_chans, embed_dim, 3, stride, 0, bias=True, groups=embed_dim)
         self.stride = stride
 
-    def forward(self, x):
+    def forward(self, x, size = None):
+        print("s shape", x.shape)
+        # class_token, x = x[:, 0], x[:, 1:]
         B, N, C = x.shape
-        cnn_feat_token = x.transpose(1, 2).view(B, C, -1)
+        if size is None:
+            size = (int(math.sqrt(N)), int(math.sqrt(N)))
+        cnn_feat_token = x.transpose(1, 2).view(B, C, *size)
+        print("cnn_feat_token.shape: {}".format(cnn_feat_token.shape))
+        # cnn_feat_token = circular_pad(cnn_feat_token, 1)
         x = self.proj(cnn_feat_token)
         if self.stride == 1:
             x += cnn_feat_token
         x = x.flatten(2).transpose(1, 2)
         return x
+
 
 
 def arrange_polyphases(x, patch_size):

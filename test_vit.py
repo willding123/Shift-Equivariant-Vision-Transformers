@@ -9,11 +9,13 @@ from models.poly_utils import *
 from config import _C
 from models.build import build_model
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 #%% 
 x = torch.rand((1,3,224,224)).cuda()
 num_test = 10000
-model = PolyViT("hf_hub:timm/vit_base_patch16_224.augreg_in21k_ft_in1k", pretrained=True).cuda()
+model = PolyViT("hf_hub:timm/vit_base_patch16_224.augreg_in21k_ft_in1k", pretrained=True, no_embed_class = True).cuda()
+
 # config  = _C.clone()
 # config.MODEL.TYPE = "vit_poly_base"
 # config.MODEL.PRETRAIN_PATH = "/home/pding/scratch.cmsc663/poly_vit_base_0227/default/ckpt_epoch_173.pth"
@@ -26,7 +28,7 @@ model = PolyViT("hf_hub:timm/vit_base_patch16_224.augreg_in21k_ft_in1k", pretrai
 # model).cuda()
 
 #%%
-for i in range(num_test):
+for i in tqdm(range(num_test)):
     shifts = tuple(np.random.randint(0,16,2))
     x1 = torch.roll(x, shifts, (2,3))
     t = model(x)
