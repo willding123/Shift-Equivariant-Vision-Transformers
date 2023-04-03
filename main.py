@@ -97,8 +97,8 @@ def main(config):
         import torchvision.transforms as transforms
         dataset_train = datasets.ImageNet(config.DATA.DATA_PATH, split='train', transform=transforms.ToTensor())
         dataset_val = datasets.ImageNet(config.DATA.DATA_PATH, split='val', transform=transforms.ToTensor())
-        data_loader_train = torch.utils.data.DataLoader(dataset_train, batch_size=config.TRAIN.BATCH_SIZE, shuffle=True, num_workers=config.WORKERS, pin_memory=True)
-        data_loader_val = torch.utils.data.DataLoader(dataset_val, batch_size=config.TRAIN.BATCH_SIZE, shuffle=False, num_workers=config.WORKERS, pin_memory=True)
+        data_loader_train = torch.utils.data.DataLoader(dataset_train, batch_size=config.DATA.BATCH_SIZE, shuffle=True, num_workers=config.DATA.NUM_WORKERS, pin_memory=True)
+        data_loader_val = torch.utils.data.DataLoader(dataset_val, batch_size=config.DATA.BATCH_SIZE, shuffle=False, num_workers=config.DATA.NUM_WORKERS , pin_memory=True)
         mixup_fn = None
     else:     
         dataset_train, dataset_val, data_loader_train, data_loader_val, data_loader_val_adv, mixup_fn = build_loader(config)
