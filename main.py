@@ -77,6 +77,7 @@ def parse_option():
                         help='overwrite optimizer if provided, can be adamw/sgd/fused_adam/fused_lamb.')
 
     parser.add_argument('--partial_gpu', action='store_true', help="Use partial gpus of one physical node")
+    parser.add_argument('--no_aug', action='store_true', help='do not use standard augmentation')
 
     args, unparsed = parser.parse_known_args()
     args.local_rank = int(os.environ["LOCAL_RANK"])
@@ -91,7 +92,16 @@ def main(config):
         run = wandb.init(config = config, project="test-project", entity="swin-transformer-poly", group = "William")
     else:
         run = None
-    dataset_train, dataset_val, data_loader_train, data_loader_val, data_loader_val_adv, mixup_fn = build_loader(config)
+    if config.AUG.NO_AUG:
+        import torchvision.datasets as datasets
+        import torchvision.transforms as transforms
+        dataset_train = datasets.ImageNet(config.DATA.DATA_PATH, split='train', transform=transforms.ToTensor())
+        dataset_val = datasets.ImageNet(config.DATA.DATA_PATH, split='val', transform=transforms.ToTensor())
+        data_loader_train = torch.utils.data.DataLoader(dataset_train, batch_size=config.TRAIN.BATCH_SIZE, shuffle=True, num_workers=config.WORKERS, pin_memory=True)
+        data_loader_val = torch.utils.data.DataLoader(dataset_val, batch_size=config.TRAIN.BATCH_SIZE, shuffle=False, num_workers=config.WORKERS, pin_memory=True)
+        mixup_fn = None
+    else:     
+        dataset_train, dataset_val, data_loader_train, data_loader_val, data_loader_val_adv, mixup_fn = build_loader(config)
     logger.info(f"Creating model:{config.MODEL.TYPE}/{config.MODEL.NAME}")
     model = build_model(config)
     logger.info(str(model))
@@ -143,9 +153,9 @@ def main(config):
         max_accuracy = load_checkpoint(config, model_without_ddp, optimizer, lr_scheduler, loss_scaler, logger)
         acc1, acc5, loss = validate(config, data_loader_val, model)
         logger.info(f"Shift Size {config.DATA.SHIFT_SIZE}")
-        acc1_adv, acc5_adv, loss_adv = validate(config, data_loader_val_adv, model)
+        # acc1_adv, acc5_adv, loss_adv = validate(config, data_loader_val_adv, model)
         logger.info(f"Accuracy of the network on the {len(dataset_val)} test images: {acc1:.1f}%")
-        logger.info(f"Accuracy of the network on the {len(dataset_val)} test shifted images: {acc1_adv:.1f}%")
+        # logger.info(f"Accuracy of the network on the {len(dataset_val)} test shifted images: {acc1_adv:.1f}%")
         if run is not None:
             run.log({"Initial Accuracy": acc1, "Initial Loss": loss, "Initial Top5 Accuracy": acc5})
             run.log({"Initial Accuracy Shifted": acc1_adv, "Initial Loss Shifted": loss_adv, "Initial Top5 Accuracy Shifted": acc5_adv})
@@ -156,9 +166,9 @@ def main(config):
         # load_pretrained(config, model_without_ddp, logger) #FIXME control some other way
         acc1, acc5, loss = validate(config, data_loader_val, model)
         logger.info(f"Shift Size {config.DATA.SHIFT_SIZE}")
-        acc1_adv, acc5_adv, loss_adv = validate(config, data_loader_val_adv, model)
+        # acc1_adv, acc5_adv, loss_adv = validate(config, data_loader_val_adv, model)
         logger.info(f"Accuracy of the network on the {len(dataset_val)} test images: {acc1:.1f}%")
-        logger.info(f"Accuracy of the network on the {len(dataset_val)} test shifted images: {acc1_adv:.1f}%")
+        # logger.info(f"Accuracy of the network on the {len(dataset_val)} test shifted images: {acc1_adv:.1f}%")
         if run is not None:
             # "InitialAccuracy": acc1, "InitialLoss": loss
             # wandb summary
@@ -193,7 +203,7 @@ def main(config):
                             logger)
 
         acc1, acc5, loss = validate(config, data_loader_val, model)
-        acc1_adv, acc5_adv, loss_adv = validate(config, data_loader_val_adv, model)
+        # acc1_adv, acc5_adv, loss_adv = validate(config, data_loader_val_adv, model)
         logger.info(f"Accuracy of the network on the {len(dataset_val)} test images: {acc1:.1f}%")
         max_accuracy = max(max_accuracy, acc1)
         logger.info(f'Max accuracy: {max_accuracy:.2f}%')
@@ -201,7 +211,7 @@ def main(config):
             wandb.summary["MaxAccuracy"] = max_accuracy
             # run.log({"Accuracy": acc1, "Loss": loss, "Top5 Accuracy": acc5, "Max Accuracy": max_accuracy, "test_epoch": epoch})
             run.log({"test_accuracy": acc1, "test_loss": loss, "test_top5_accuracy": acc5, "test_epoch": epoch, 'test_max_accuracy': max_accuracy})
-            run.log({"test_adv_accuracy": acc1_adv, "test_adv_loss": loss_adv, "test_adv_top5_accuracy": acc5_adv, "test_adv_epoch": epoch})
+            # run.log({"test_adv_accuracy": acc1_adv, "test_adv_loss": loss_adv, "test_adv_top5_accuracy": acc5_adv, "test_adv_epoch": epoch})
 
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))

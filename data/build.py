@@ -192,7 +192,7 @@ def build_transform(is_train, config, roll = False):
             )
 
     t.append(transforms.ToTensor())
-    t.append(transforms.Normalize(IMAGENET_INCEPTION_MEAN, IMAGENET_INCEPTION_STD))
+    t.append(transforms.Normalize(IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD))
     if shift_roll and roll:
         # apply torch.roll in range [-shift_max, shift_max]
         if abs(config.DATA.SHIFT_SIZE) > 0 :

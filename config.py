@@ -54,6 +54,8 @@ _C.MODEL = CN()
 _C.MODEL.TYPE = 'swin_poly'
 # Model name
 _C.MODEL.NAME = 'poly_swin_tiny_patch4_window7_224'
+# Model card (timm model card)
+_C.MODEL.CARD = None
 # Pretrained weight from checkpoint, could be imagenet22k pretrained weight
 # could be overwritten by command line argument
 _C.MODEL.PRETRAINED = ''
@@ -224,6 +226,7 @@ _C.AUG.MIXUP_PROB = 1.0
 _C.AUG.MIXUP_SWITCH_PROB = 0.5
 # How to apply mixup/cutmix params. Per "batch", "pair", or "elem"
 _C.AUG.MIXUP_MODE = 'batch'
+_C.AUG.NO_AUG = False
 
 # -----------------------------------------------------------------------------
 # Testing settings
@@ -324,6 +327,8 @@ def update_config(config, args):
         config.EVAL_MODE = True
     if _check_args('throughput'):
         config.THROUGHPUT_MODE = True
+    if _check_args('no_aug'):
+        config.AUG.NO_AUG = True
 
     # [SimMIM]
     if _check_args('enable_amp'):
