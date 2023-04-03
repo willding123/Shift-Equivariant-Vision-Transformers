@@ -95,10 +95,27 @@ def main(config):
     if config.AUG.NO_AUG:
         import torchvision.datasets as datasets
         import torchvision.transforms as transforms
-        dataset_train = datasets.ImageNet(config.DATA.DATA_PATH, split='train', transform=transforms.ToTensor())
-        dataset_val = datasets.ImageNet(config.DATA.DATA_PATH, split='val', transform=transforms.ToTensor())
-        data_loader_train = torch.utils.data.DataLoader(dataset_train, batch_size=config.DATA.BATCH_SIZE, shuffle=True, num_workers=config.DATA.NUM_WORKERS, pin_memory=True)
-        data_loader_val = torch.utils.data.DataLoader(dataset_val, batch_size=config.DATA.BATCH_SIZE, shuffle=False, num_workers=config.DATA.NUM_WORKERS , pin_memory=True)
+        from timm.data.constants import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD, IMAGENET_INCEPTION_MEAN, IMAGENET_INCEPTION_STD
+        from torchvision.transforms import InterpolationMode
+        transform = transforms.Compose([
+            transforms.Resize(size = 256, interpolation=InterpolationMode.BICUBIC),
+            transforms.CenterCrop(224),
+            transforms.ToTensor(),
+            transforms.Normalize(
+                mean=IMAGENET_INCEPTION_MEAN,
+                std=IMAGENET_INCEPTION_STD
+            )
+        ])
+        dataset_train = datasets.ImageNet(config.DATA.DATA_PATH, split='train', transform=transform)
+        dataset_val = datasets.ImageNet(config.DATA.DATA_PATH, split='val', transform=transform)
+        sampler_train = torch.utils.data.DistributedSampler(
+            dataset_train, num_replicas=dist.get_world_size(), rank= dist.get_rank(), shuffle=True
+        )
+        sampler_val = torch.utils.data.distributed.DistributedSampler(
+            dataset_val, shuffle=config.TEST.SHUFFLE
+        )
+        data_loader_train = torch.utils.data.DataLoader(dataset_train, sampler=sampler_train, batch_size=config.DATA.BATCH_SIZE, num_workers=config.DATA.NUM_WORKERS, pin_memory=True)
+        data_loader_val = torch.utils.data.DataLoader(dataset_val, sampler=sampler_val, batch_size=config.DATA.BATCH_SIZE, num_workers=config.DATA.NUM_WORKERS , pin_memory=True)
         mixup_fn = None
     else:     
         dataset_train, dataset_val, data_loader_train, data_loader_val, data_loader_val_adv, mixup_fn = build_loader(config)
@@ -158,7 +175,7 @@ def main(config):
         # logger.info(f"Accuracy of the network on the {len(dataset_val)} test shifted images: {acc1_adv:.1f}%")
         if run is not None:
             run.log({"Initial Accuracy": acc1, "Initial Loss": loss, "Initial Top5 Accuracy": acc5})
-            run.log({"Initial Accuracy Shifted": acc1_adv, "Initial Loss Shifted": loss_adv, "Initial Top5 Accuracy Shifted": acc5_adv})
+            # run.log({"Initial Accuracy Shifted": acc1_adv, "Initial Loss Shifted": loss_adv, "Initial Top5 Accuracy Shifted": acc5_adv})
         if config.EVAL_MODE:
             return
 
@@ -175,9 +192,9 @@ def main(config):
             wandb.run.summary["InitialAccuracy"] = acc1
             wandb.run.summary["InitialLoss"] = loss
             wandb.run.summary["InitialTop5Accuracy"] = acc5
-            wandb.run.summary["InitialAccuracyShifted"] = acc1_adv
-            wandb.run.summary["InitialLossShifted"] = loss_adv
-            wandb.run.summary["InitialTop5AccuracyShifted"] = acc5_adv
+            # wandb.run.summary["InitialAccuracyShifted"] = acc1_adv
+            # wandb.run.summary["InitialLossShifted"] = loss_adv
+            # wandb.run.summary["InitialTop5AccuracyShifted"] = acc5_adv
         
         if run is not None:
             run.log({"test accuracy": acc1, "max accuracy": acc1, "test loss": loss, "test_epoch": -1})

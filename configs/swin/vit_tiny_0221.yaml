@@ -1,7 +1,0 @@
-MODEL:
-  TYPE: vit
-  NAME: vit_tiny_0221
-  PRETRAINED: "model"
-DATA:
-  BATCH_SIZE: 128
-  NUM_WORKERS: 24
