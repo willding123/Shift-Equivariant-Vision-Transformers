@@ -14,6 +14,7 @@ from .swin_mlp import SwinMLP
 from .simmim import build_simmim
 import timm 
 from .poly_utils import *
+from .vision_transformer import PolyViT
 from .polytwins import PolyTwins
 
 

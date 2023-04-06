@@ -8,8 +8,8 @@ from torch.utils.data import DataLoader
 from timm.models.vision_transformer_relpos import VisionTransformerRelPos
 # import imagenet default constants from timm
 from timm.data.constants import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD, IMAGENET_INCEPTION_MEAN, IMAGENET_INCEPTION_STD
-from torchvision.transforms import InterpolationMode
-import timm 
+from torchvision.transforms import InterpolationMode, RandomAffine, RandomPerspective, RandomCrop 
+import timm
 import time 
 import numpy as np 
 from config import _C
@@ -39,6 +39,19 @@ def parse_args():
     parser.add_argument ("--pretrained_path", type=str, default = None, required=False, metavar="FILE", help="pretrained model path")
     parser.add_argument("--affine", type=bool, default = False, required=False, metavar="FILE", help="whether enable affine attack")
     parser.add_argument("--breaking", action="store_true", required=False, help="break the loop if there are enough inconsistent predictions")
+    # add arguments for random perspective attack
+    parser.add_argument("--random_perspective", type=bool, default = False, required=False, metavar="FILE", help="whether enable random perspective attack")
+    parser.add_argument("--distortion_scale", type=int, default = 0.5, required=False, metavar="FILE", help='perspective size')
+    parser.add_argument("--crop", type=bool, default = False, required=False, metavar="FILE", help="whether enable crop attack")
+    parser.add_argument("--crop_size", type=int, default = 15, required=False, metavar="FILE", help='crop size')
+    # add arguments for random affine attack   
+    parser.add_argument("--random_affine", type=bool, default = False, required=False, metavar="FILE", help="whether enable random affine attack")
+    parser.add_argument("--degrees", type=int, default = 30, required=False, metavar="FILE", help='degrees')
+    parser.add_argument("--translate", type=int, default = 0.1, required=False, metavar="FILE", help='translate')
+    parser.add_argument("--scale", type=int, default = (0.8,1.2) , required=False, metavar="FILE", help='scale')
+    parser.add_argument("--shear", type=int, default = 10, required=False, metavar="FILE", help='shear')
+    # add arguments for all three attacks
+    parser.add_argument("--all_three", type=bool, default = False, required=False, metavar="FILE", help="whether enable all three attacks")
     args, unparsed = parser.parse_known_args()
     return args
 
@@ -114,8 +127,34 @@ def main(args):
                 std=IMAGENET_INCEPTION_STD
             )
         ])
-    
 
+    # if random perspective attack is enabled, add the random perspective transformation
+    if args.random_perspective:
+        transformation = transforms.Compose([
+        transformation,
+        RandomPerspective(distortion_scale = args.distortion_scale)
+        ])
+    # if random affine attack is enabled, add the random affine transformation
+    if args.random_affine:
+        transformation = transforms.Compose([
+        transformation,
+        RandomAffine(degrees = args.degrees, translate = args.translate, scale = args.scale, shear = args.shear)
+        ])
+    # if crop attack is enabled, add the crop transformation
+    if args.crop:
+        transformation = transforms.Compose([
+        transformation,
+        RandomCrop(size = args.crop_size, scale = (args.crop_ratio, args.crop_ratio))
+        ])
+    # if all three attacks are enabled, add the random perspective, random affine and crop transformations
+    if args.all_three:
+        transformation = transforms.Compose([
+        transformation,
+        RandomPerspective(distortion_scale = args.distortion_scale),
+        RandomAffine(degrees = args.degrees, translate = args.translate, scale = args.scale, shear = args.shear),
+        RandomCrop(size = args.crop_size, scale = (args.crop_ratio, args.crop_ratio))
+        ])
+        
 
     # Load the ImageNet-O dataset using the ImageFolder class
     dataset = ImageFolder(root=data_path, transform=transformation)
