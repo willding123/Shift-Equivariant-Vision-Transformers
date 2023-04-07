@@ -148,7 +148,6 @@ model/__pycache__/
 *.pth
 
 # Ignore yaml files
-*.yaml
 
 # Ignore vscode settings 
 settings.json
