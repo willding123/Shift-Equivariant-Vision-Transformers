@@ -32,7 +32,7 @@ def parse_args():
     parser.add_argument('--model', type=str, required=True, metavar="FILE", help='model name' )
     parser.add_argument('--data_path', type=str,  default = '/fs/cml-datasets/ImageNet/ILSVRC2012/val', required=False, metavar="FILE", help='dataset path')
     parser.add_argument('--model_card', type=str, required=False, metavar="FILE", help='model name on hugging face used in timm to create models' )
-    parser.add_argument('--shift_attack', type=bool, default=True, help='whether enable shift attack')
+    parser.add_argument('--shift_attack', type=bool, default=False, help='whether enable shift attack')
     parser.add_argument('--shift_size', type=int, default = 15, required=False, metavar="FILE", help='shift size')
     parser.add_argument('--batch_size', type=int, default = 128, required=False, metavar="FILE", help='batch size')
     parser.add_argument('--num_workers', type=int, default = 8, required=False, metavar="FILE", help='number of workers')
@@ -47,8 +47,8 @@ def parse_args():
     # add arguments for random affine attack   
     parser.add_argument("--random_affine", type=bool, default = False, required=False, metavar="FILE", help="whether enable random affine attack")
     parser.add_argument("--degrees", type=int, default = 30, required=False, metavar="FILE", help='degrees')
-    parser.add_argument("--translate", type=int, default = 0.1, required=False, metavar="FILE", help='translate')
-    parser.add_argument("--scale", type=int, default = (0.8,1.2) , required=False, metavar="FILE", help='scale')
+    parser.add_argument("--translate", type=float, default = [0.1, 0.1], nargs="+", required=False, metavar="FILE", help='translate')  # Do --translate 0.1 0.1
+    parser.add_argument("--scale", type=float, default = [0.8, 1.2], nargs="+", required=False, metavar="FILE", help='scale')  # --scale 0.8 1.2
     parser.add_argument("--shear", type=int, default = 10, required=False, metavar="FILE", help='shear')
     # add arguments for all three attacks
     parser.add_argument("--all_three", type=bool, default = False, required=False, metavar="FILE", help="whether enable all three attacks")
@@ -138,7 +138,7 @@ def main(args):
     if args.random_affine:
         transformation = transforms.Compose([
         transformation,
-        RandomAffine(degrees = args.degrees, translate = args.translate, scale = args.scale, shear = args.shear)
+        RandomAffine(degrees = args.degrees, translate = tuple(args.translate), scale = tuple(args.scale), shear = args.shear)
         ])
     # if crop attack is enabled, add the crop transformation
     if args.crop:
@@ -151,7 +151,7 @@ def main(args):
         transformation = transforms.Compose([
         transformation,
         RandomPerspective(distortion_scale = args.distortion_scale),
-        RandomAffine(degrees = args.degrees, translate = args.translate, scale = args.scale, shear = args.shear),
+        RandomAffine(degrees = args.degrees, translate = tuple(args.translate), scale = tuple(args.scale), shear = args.shear),
         RandomCrop(size = args.crop_size, scale = (args.crop_ratio, args.crop_ratio))
         ])
         
