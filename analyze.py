@@ -20,7 +20,7 @@ waitlist = []
 # directory where the log_rank files are located
 # dir_path = "/fs/nexus-scratch/pding/output/swin_tiny_patch4_window7_1k_default/default"
 # dir_path = "/fs/nexus-projects/shift-equivariant_vision_transformer/poly_swin_tiny_0215/default"
-dir_path = "/home/pding/scratch.cmsc663/pvit_noaug405/default"
+dir_path = "/home/pding/scratch.cmsc663/pvit_small_w/default"
 i = 0
 # iterate through the files in the directory
 for file_name in os.listdir(dir_path):
@@ -42,11 +42,11 @@ for file_name in os.listdir(dir_path):
 
 fig, ax = plt.subplots()
 ax.plot(acc_ls)
-# plt.show()
-
+plt.show()
+print(max(acc_ls), acc_ls.index(max(acc_ls)))
 # display the plot using log base 2 scale for both x and y axis
 ax.set_xscale('log', basex=10)
-ax.plot(acc_ls)
+# ax.plot(acc_ls)
 plt.show()
 #%%
 # write a power law function
@@ -78,7 +78,8 @@ ax.set_yscale('log', basey=10)
 ax.legend()
 plt.show()
 
-# extrapolate the data to 300 epochs: "extrapolate to 300 epochs:"
-print("extrapolate to 300 epochs: ", power_law(300, *popt))
+# extrapolate the data to n epochs: "extrapolate to n epochs:"
+n = 100
+print(f"extrapolate to {n} epochs: ", power_law(n, *popt))
 
 # %%

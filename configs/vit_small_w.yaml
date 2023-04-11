@@ -1,6 +1,6 @@
 MODEL:
   TYPE: vit
-  NAME: vit_small_w
+  NAME: vit_small_411_w
   PRETRAINED: False
   CARD: "timm/vit_small_patch16_224.augreg_in1k"
 
@@ -12,7 +12,14 @@ DATA:
 
 TRAIN:
   WARMUP_EPOCHS: 20
-  WARMUP_LR: 1e-5
-  BASE_LR: 1e-3
+  WARMUP_LR: 1e-6
+  BASE_LR: 1e-4
   MIN_LR: 1e-5
-  WEIGHT_DECAY: 0.1
+  WEIGHT_DECAY: 0.01
+
+# TRAIN:
+#   WARMUP_EPOCHS: 20
+#   WARMUP_LR: 1e-5
+#   BASE_LR: 1e-3
+#   MIN_LR: 1e-5
+#   WEIGHT_DECAY: 0.1

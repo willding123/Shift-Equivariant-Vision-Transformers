@@ -6,9 +6,9 @@
 ##SBATCH --gpus=a100_1g.5gb:1
 #SBATCH --gpus=a100:1
 #SBATCH --time=12:00:00
-#SBATCH --job-name=pvit6
-#SBATCH --output=pvit6.out
-#SBATCH --error=pvit6.err
+#SBATCH --job-name=vit
+#SBATCH --output=vit.out
+#SBATCH --error=vit.err
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=pding@umd.edu
 
@@ -23,7 +23,7 @@ cd ~/scratch.cmsc663/Swin-Transformer
 export WANDB_MODE="offline"
 # export CUDA_LAUNCH_BLOCKING=1
 
-torchrun --nproc_per_node 1  --nnodes 1 --master_port 19553 main.py --cfg configs/polyvit_406.yaml --data-path ~/scratch.cmsc663 --output ~/scratch.cmsc663 
+torchrun --nproc_per_node 1  --nnodes 1 --master_port 18859 main.py --cfg configs/vit_small_w.yaml --data-path ~/scratch.cmsc663 --output ~/scratch.cmsc663 
 
 # eval 
 # torchrun --nproc_per_node 1  --nnodes 1 --master_port 41342 main.py --eval --cfg configs/swin/pretrained.yaml --data-path ~/scratch.cmsc663 --output ~/scratch.cmsc663 
