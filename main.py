@@ -88,10 +88,6 @@ def parse_option():
 @record
 def main(config):
     # wandb.init(config=config, group="DDP")
-    if config.LOCAL_RANK == 0:
-        run = wandb.init(config = config, project="test-project", entity="swin-transformer-poly", group = "William")
-    else:
-        run = None
     if config.AUG.NO_AUG:
         import torchvision.datasets as datasets
         import torchvision.transforms as transforms
@@ -133,6 +129,11 @@ def main(config):
 
     optimizer = build_optimizer(config, model)
     model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[config.LOCAL_RANK], broadcast_buffers=False)
+    if config.LOCAL_RANK == 0:
+        run = wandb.init(config = config, project="test-project", entity="swin-transformer-poly", group = "William", name = config.MODEL.NAME)
+    else:
+        run = None
+
     if run is not None:
         run.watch(model, log_freq=100)
     loss_scaler = NativeScalerWithGradNormCount()
@@ -416,23 +417,23 @@ if __name__ == '__main__':
     random.seed(seed)
     cudnn.benchmark = True
 
-    # linear scale the learning rate according to total batch size, may not be optimal
-    # linear_scaled_lr = config.TRAIN.BASE_LR * config.DATA.BATCH_SIZE/ 512.0
-    linear_scaled_lr = config.TRAIN.BASE_LR * config.DATA.BATCH_SIZE * dist.get_world_size() / 512.0
-    # linear_scaled_warmup_lr = config.TRAIN.WARMUP_LR * config.DATA.BATCH_SIZE/512.0
-    linear_scaled_warmup_lr = config.TRAIN.WARMUP_LR * config.DATA.BATCH_SIZE * dist.get_world_size() / 512.0
-    # linear_scaled_min_lr = config.TRAIN.MIN_LR * config.DATA.BATCH_SIZE/ 512.0
-    linear_scaled_min_lr = config.TRAIN.MIN_LR * config.DATA.BATCH_SIZE * dist.get_world_size() / 512.0
-    # gradient accumulation also need to scale the learning rate
-    if config.TRAIN.ACCUMULATION_STEPS > 1:
-        linear_scaled_lr = linear_scaled_lr * config.TRAIN.ACCUMULATION_STEPS
-        linear_scaled_warmup_lr = linear_scaled_warmup_lr * config.TRAIN.ACCUMULATION_STEPS
-        linear_scaled_min_lr = linear_scaled_min_lr * config.TRAIN.ACCUMULATION_STEPS
-    config.defrost()
-    config.TRAIN.BASE_LR = linear_scaled_lr
-    config.TRAIN.WARMUP_LR = linear_scaled_warmup_lr
-    config.TRAIN.MIN_LR = linear_scaled_min_lr
-    config.freeze()
+    # # linear scale the learning rate according to total batch size, may not be optimal
+    # # linear_scaled_lr = config.TRAIN.BASE_LR * config.DATA.BATCH_SIZE/ 512.0
+    # linear_scaled_lr = config.TRAIN.BASE_LR * config.DATA.BATCH_SIZE * dist.get_world_size() / 512.0
+    # # linear_scaled_warmup_lr = config.TRAIN.WARMUP_LR * config.DATA.BATCH_SIZE/512.0
+    # linear_scaled_warmup_lr = config.TRAIN.WARMUP_LR * config.DATA.BATCH_SIZE * dist.get_world_size() / 512.0
+    # # linear_scaled_min_lr = config.TRAIN.MIN_LR * config.DATA.BATCH_SIZE/ 512.0
+    # linear_scaled_min_lr = config.TRAIN.MIN_LR * config.DATA.BATCH_SIZE * dist.get_world_size() / 512.0
+    # # gradient accumulation also need to scale the learning rate
+    # if config.TRAIN.ACCUMULATION_STEPS > 1:
+    #     linear_scaled_lr = linear_scaled_lr * config.TRAIN.ACCUMULATION_STEPS
+    #     linear_scaled_warmup_lr = linear_scaled_warmup_lr * config.TRAIN.ACCUMULATION_STEPS
+    #     linear_scaled_min_lr = linear_scaled_min_lr * config.TRAIN.ACCUMULATION_STEPS
+    # config.defrost()
+    # config.TRAIN.BASE_LR = linear_scaled_lr
+    # config.TRAIN.WARMUP_LR = linear_scaled_warmup_lr
+    # config.TRAIN.MIN_LR = linear_scaled_min_lr
+    # config.freeze()
 
     os.makedirs(config.OUTPUT, exist_ok=True)
     # logger = create_logger(output_dir=config.OUTPUT, dist_rank=0, name=f"{config.MODEL.NAME}")

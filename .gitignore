@@ -159,3 +159,6 @@ settings.json
 # Ignore pth and npz files
 *.pth
 *.npz
+
+# Ignore zzz.py
+zzz.py

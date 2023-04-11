@@ -1,7 +1,7 @@
 MODEL:
   TYPE: polyvit
   NAME: pvit_407
-  PRETRAINED: "model"
+  PRETRAINED: True
 
 DATA:
   BATCH_SIZE: 256

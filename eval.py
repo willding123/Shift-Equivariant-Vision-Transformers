@@ -42,16 +42,18 @@ def parse_args():
     # add arguments for random perspective attack
     parser.add_argument("--random_perspective", type=bool, default = False, required=False, metavar="FILE", help="whether enable random perspective attack")
     parser.add_argument("--distortion_scale", type=int, default = 0.5, required=False, metavar="FILE", help='perspective size')
+    # add arguments for crop attack
     parser.add_argument("--crop", type=bool, default = False, required=False, metavar="FILE", help="whether enable crop attack")
-    parser.add_argument("--crop_size", type=int, default = 15, required=False, metavar="FILE", help='crop size')
+    parser.add_argument("--crop_size", type=int, default = 224, required=False, metavar="FILE", help='crop size')
+    parser.add_argument("--crop_padding", type=int, default = 10, required=False, metavar="FILE", help='crop ratio')
     # add arguments for random affine attack   
     parser.add_argument("--random_affine", type=bool, default = False, required=False, metavar="FILE", help="whether enable random affine attack")
     parser.add_argument("--degrees", type=int, default = 30, required=False, metavar="FILE", help='degrees')
-    parser.add_argument("--translate", type=int, default = 0.1, required=False, metavar="FILE", help='translate')
+    parser.add_argument("--translate", type=int, default = (0.1,0.1), required=False, metavar="FILE", help='translate')
     parser.add_argument("--scale", type=int, default = (0.8,1.2) , required=False, metavar="FILE", help='scale')
     parser.add_argument("--shear", type=int, default = 10, required=False, metavar="FILE", help='shear')
     # add arguments for all three attacks
-    parser.add_argument("--all_three", type=bool, default = False, required=False, metavar="FILE", help="whether enable all three attacks")
+    parser.add_argument("--all_three", action="store_true", required=False, help="whether enable all three attacks")
     args, unparsed = parser.parse_known_args()
     return args
 
@@ -144,7 +146,7 @@ def main(args):
     if args.crop:
         transformation = transforms.Compose([
         transformation,
-        RandomCrop(size = args.crop_size, scale = (args.crop_ratio, args.crop_ratio))
+        RandomCrop(size = args.crop_size, padding = args.crop_padding)
         ])
     # if all three attacks are enabled, add the random perspective, random affine and crop transformations
     if args.all_three:
@@ -152,7 +154,7 @@ def main(args):
         transformation,
         RandomPerspective(distortion_scale = args.distortion_scale),
         RandomAffine(degrees = args.degrees, translate = args.translate, scale = args.scale, shear = args.shear),
-        RandomCrop(size = args.crop_size, scale = (args.crop_ratio, args.crop_ratio))
+        RandomCrop(size = args.crop_size, padding = args.crop_padding)
         ])
         
 

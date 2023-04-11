@@ -46,6 +46,10 @@ _C.DATA.MASK_PATCH_SIZE = 32
 # [SimMIM] Mask ratio for MaskGenerator
 _C.DATA.MASK_RATIO = 0.6
 
+# use imagenet default mean and std
+_C.DATA.MEAN = [0.485, 0.456, 0.406]
+_C.DATA.STD = [0.229, 0.224, 0.225]
+
 # -----------------------------------------------------------------------------
 # Model settings
 # -----------------------------------------------------------------------------
@@ -58,7 +62,7 @@ _C.MODEL.NAME = 'poly_swin_tiny_patch4_window7_224'
 _C.MODEL.CARD = None
 # Pretrained weight from checkpoint, could be imagenet22k pretrained weight
 # could be overwritten by command line argument
-_C.MODEL.PRETRAINED = ''
+_C.MODEL.PRETRAINED = False
 # Checkpoint to resume, could be overwritten by command line argument
 _C.MODEL.RESUME = ''
 # Number of classes, overwritten in data preparation
