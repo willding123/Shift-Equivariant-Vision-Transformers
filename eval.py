@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 from timm.models.vision_transformer_relpos import VisionTransformerRelPos
 # import imagenet default constants from timm
 from timm.data.constants import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD, IMAGENET_INCEPTION_MEAN, IMAGENET_INCEPTION_STD
-from torchvision.transforms import InterpolationMode, RandomAffine, RandomPerspective, RandomCrop 
+from torchvision.transforms import InterpolationMode, RandomAffine, RandomPerspective, RandomCrop, RandomErasing, RandomHorizontalFlip, RandomVerticalFlip
 import timm
 import time 
 import numpy as np 
@@ -40,20 +40,24 @@ def parse_args():
     parser.add_argument("--affine", type=bool, default = False, required=False, metavar="FILE", help="whether enable affine attack")
     parser.add_argument("--breaking", action="store_true", required=False, help="break the loop if there are enough inconsistent predictions")
     # add arguments for random perspective attack
-    parser.add_argument("--random_perspective", type=bool, default = False, required=False, metavar="FILE", help="whether enable random perspective attack")
+    parser.add_argument("--random_perspective", action="store_true", required=False, help="whether enable random perspective attack")
     parser.add_argument("--distortion_scale", type=int, default = 0.5, required=False, metavar="FILE", help='perspective size')
     # add arguments for crop attack
-    parser.add_argument("--crop", type=bool, default = False, required=False, metavar="FILE", help="whether enable crop attack")
+    parser.add_argument("--crop", action="store_true", required=False, help="whether enable crop attack")
     parser.add_argument("--crop_size", type=int, default = 224, required=False, metavar="FILE", help='crop size')
     parser.add_argument("--crop_padding", type=int, default = 10, required=False, metavar="FILE", help='crop ratio')
     # add arguments for random affine attack   
-    parser.add_argument("--random_affine", type=bool, default = False, required=False, metavar="FILE", help="whether enable random affine attack")
+    parser.add_argument("--random_affine", action="store_true", required=False, help="whether enable random affine attack")
     parser.add_argument("--degrees", type=int, default = 30, required=False, metavar="FILE", help='degrees')
     parser.add_argument("--translate", type=int, default = (0.1,0.1), required=False, metavar="FILE", help='translate')
     parser.add_argument("--scale", type=int, default = (0.8,1.2) , required=False, metavar="FILE", help='scale')
     parser.add_argument("--shear", type=int, default = 10, required=False, metavar="FILE", help='shear')
-    # add arguments for all three attacks
-    parser.add_argument("--all_three", action="store_true", required=False, help="whether enable all three attacks")
+    # add arguments for random erasing
+    parser.add_argument("--random_erasing", action="store_true", required=False, help="whether enable random erasing")
+    # add argumennts for horizontal flip
+    parser.add_argument("--flip", action="store_true", required=False, help="whether enable horizontal flip")
+    # add arguments for all attacks
+    parser.add_argument("--all_attack", action="store_true", required=False, help="whether enable all attacks")
     args, unparsed = parser.parse_known_args()
     return args
 
@@ -99,9 +103,10 @@ def main(args):
     if args.pretrained_path:
         config  = _C.clone()
         config.MODEL.TYPE = args.model
-        config.MODEL.PRETRAIN_PATH = args.pretrained_path
         try: 
-            model = build_model(config, is_pretrain=True)
+            model = build_model(config)
+            ckpt = torch.load(args.pretrained_path, map_location=device)
+            model.load_state_dict(ckpt['model'])
         except:
             raise NotImplementedError
 
@@ -148,13 +153,27 @@ def main(args):
         transformation,
         RandomCrop(size = args.crop_size, padding = args.crop_padding)
         ])
+    # if random erasing attack is enabled, add the random erasing transformation
+    if args.random_erasing:
+        transformation = transforms.Compose([
+        transformation,
+        RandomErasing()
+        ])
+    # if horizontal flip attack is enabled, add the horizontal flip transformation
+    if args.flip:
+        transformation = transforms.Compose([
+        transformation,
+        RandomHorizontalFlip()
+        ])
     # if all three attacks are enabled, add the random perspective, random affine and crop transformations
-    if args.all_three:
+    if args.all_attack:
         transformation = transforms.Compose([
         transformation,
         RandomPerspective(distortion_scale = args.distortion_scale),
         RandomAffine(degrees = args.degrees, translate = args.translate, scale = args.scale, shear = args.shear),
-        RandomCrop(size = args.crop_size, padding = args.crop_padding)
+        RandomCrop(size = args.crop_size, padding = args.crop_padding),
+        RandomErasing(),
+        RandomHorizontalFlip()
         ])
         
 
