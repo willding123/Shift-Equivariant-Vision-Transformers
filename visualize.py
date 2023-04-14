@@ -2,6 +2,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
+import torchvision
 import torch.nn as nn
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
@@ -11,13 +12,28 @@ from timm.data.constants import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
 import timm
 from torchvision.datasets import ImageFolder
 from tqdm import tqdm
-# Load the PyTorch model that will be used to get the output probabilities
+from config import _C
+from models.build import build_model
+
+# set random seed for reproducibility
+torch.manual_seed(0)
+np.random.seed(0)
 
 data_path = "~/scratch.cmsc663/train"
 device = "cuda" if torch.cuda.is_available() else "cpu"
-model = timm.create_model("hf_hub:timm/vit_relpos_small_patch16_224.sw_in1k", pretrained=True).to(device)
-model.eval()
+model_card = "hf_hub:timm/vit_small_patch16_224.augreg_in21k_ft_in1k"
+model = timm.create_model(model_card, pretrained=True).to(device)
 
+config  = _C.clone()
+config.MODEL.TYPE = "polyvit"
+config.MODEL.CARD = model_card
+config.MODEL.PRETRAIN_PATH = "/home/pding/scratch.cmsc663/pvit_small_w/default/ckpt_epoch_80.pth"
+model1 = build_model(config)
+ckpt  = torch.load(config.MODEL.PRETRAIN_PATH, map_location=device)
+model1.load_state_dict(ckpt["model"])
+model1 = model.to(device)
+
+model.eval()
 transform = transforms.Compose([
             transforms.Resize(size = 256, interpolation=InterpolationMode.BICUBIC),
             transforms.CenterCrop(224),
@@ -29,7 +45,7 @@ transform = transforms.Compose([
         ])
 
 # Define a function to calculate the variance of output probabilities for each shift size
-def get_variances(shift_sizes, num_samples):
+def get_variances(model, shift_sizes, num_samples):
     probs = []
     imagenet_dataset = ImageFolder(root=data_path, transform=transform)
     imagenet_loader = torch.utils.data.DataLoader(imagenet_dataset, batch_size=num_samples, shuffle=True)
@@ -54,17 +70,17 @@ shift_sizes = range(-5,5)
 num_samples = 256
 
 # Get the variances for each shift size
-variances = get_variances(shift_sizes, num_samples)
+variances = get_variances(model, shift_sizes, num_samples)
+variances1 = get_variances(model1, shift_sizes, num_samples)
 
 plt.imshow(variances.reshape(16,-1), cmap="hot")
 plt.colorbar()
 plt.show()
-#%%
 
-import torch
-import torchvision
-import numpy as np
-import matplotlib.pyplot as plt
+plt.imshow(variances.reshape(16,-1), cmap="hot")
+plt.colorbar()
+plt.show()
+#%% 
 
 
 transform = transforms.Compose([
@@ -78,7 +94,7 @@ transform = transforms.Compose([
         ])
 
 # Load the pre-trained vision transformer model on ImageNet
-model = torchvision.models.vit_large_patch16_224(pretrained=True)
+# model = torchvision.models.vit_large_patch16_224(pretrained=True)
 
 # Define the input image size
 input_size = (224, 224)
@@ -86,7 +102,6 @@ input_size = (224, 224)
 # Define the number of pixels to shift the input by
 shift = 1
 
-# Generate a random input image
 imagenet_dataset = ImageFolder(root=data_path, transform=transform)
 imagenet_loader = torch.utils.data.DataLoader(imagenet_dataset, batch_size=num_samples, shuffle=True)
 images, labels = next(iter(imagenet_loader))
