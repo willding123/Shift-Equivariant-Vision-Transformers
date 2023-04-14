@@ -5,10 +5,10 @@
 #SBATCH -c 4
 ##SBATCH --gpus=a100_1g.5gb:1
 #SBATCH --gpus=a100:1
-#SBATCH --time=12:00:00
-#SBATCH --job-name=twins
-#SBATCH --output=twins.out
-#SBATCH --error=twins.err
+#SBATCH --time=24:00:00
+#SBATCH --job-name=ptwins
+#SBATCH --output=ptwins.out
+#SBATCH --error=ptwins.err
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=pding@umd.edu
 
@@ -23,7 +23,7 @@ cd ~/scratch.cmsc663/Swin-Transformer
 export WANDB_MODE="offline"
 # export CUDA_LAUNCH_BLOCKING=1
 
-torchrun --nproc_per_node 1  --nnodes 1 --master_port 13059 main.py --cfg configs/twins_svts_w.yaml --data-path ~/scratch.cmsc663 --output ~/scratch.cmsc663 
+torchrun --nproc_per_node 1  --nnodes 1 --master_port 22301 main.py --cfg configs/ptwins_svts_w.yaml --data-path ~/scratch.cmsc663 --output ~/scratch.cmsc663 
 
 # eval 
 # torchrun --nproc_per_node 1  --nnodes 1 --master_port 41342 main.py --eval --cfg configs/swin/pretrained.yaml --data-path ~/scratch.cmsc663 --output ~/scratch.cmsc663 
