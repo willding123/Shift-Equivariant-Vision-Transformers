@@ -18,7 +18,7 @@ from .vision_transformer import PolyViT
 from .polytwins import PolyTwins
 
 
-def build_model(config, is_pretrain=False):
+def build_model(config):
     model_type = config.MODEL.TYPE
 
     # accelerate layernorm
