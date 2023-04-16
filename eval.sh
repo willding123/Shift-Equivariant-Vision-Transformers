@@ -18,35 +18,35 @@ cd ~/scratch.cmsc663/Swin-Transformer
 
 # eval
 # print model name and attack mode
-echo "model: polytwins"
+echo "model: polyvit"
 echo "attack mode: random_affine"
-python eval.py --model polytwins --data_path ~/scratch.cmsc663/val/ --batch_size 256 --random_affine --pretrained_path  ~/scratch.cmsc663/twins_402/default/ckpt_epoch_113.pth
+python eval.py --model polyvit --model_card timm/vit_small_patch16_224.augreg_in1k --data_path ~/scratch.cmsc663/val/ --batch_size 256 --random_affine --pretrained_path  ~/scratch.cmsc663/pvit_small_w/default/ckpt_epoch_82.pth
 
 echo "attack mode: random_perspective"
-python eval.py --model polytwins --data_path ~/scratch.cmsc663/val/ --batch_size 256 --random_perspective --pretrained_path  ~/scratch.cmsc663/twins_402/default/ckpt_epoch_113.pth
+python eval.py --model polyvit --model_card timm/vit_small_patch16_224.augreg_in1k --data_path ~/scratch.cmsc663/val/ --batch_size 256 --random_perspective --pretrained_path  ~/scratch.cmsc663/pvit_small_w/default/ckpt_epoch_82.pth
 
 echo "attack mode: crop"
-python eval.py --model polytwins --data_path ~/scratch.cmsc663/val/ --batch_size 256 --crop --pretrained_path  ~/scratch.cmsc663/twins_402/default/ckpt_epoch_113.pth
+python eval.py --model polyvit --model_card timm/vit_small_patch16_224.augreg_in1k --data_path ~/scratch.cmsc663/val/ --batch_size 256 --crop --pretrained_path  ~/scratch.cmsc663/pvit_small_w/default/ckpt_epoch_82.pth
 
 echo "attack mode: flip"
-python eval.py --model polytwins --data_path ~/scratch.cmsc663/val/ --batch_size 256 --flip --pretrained_path  ~/scratch.cmsc663/twins_402/default/ckpt_epoch_113.pth
+python eval.py --model polyvit --model_card timm/vit_small_patch16_224.augreg_in1k --data_path ~/scratch.cmsc663/val/ --batch_size 256 --flip --pretrained_path  ~/scratch.cmsc663/pvit_small_w/default/ckpt_epoch_82.pth
 
 echo "attack mode: random_erasing"
-python eval.py --model polytwins --data_path ~/scratch.cmsc663/val/ --batch_size 256 --random_erasing --pretrained_path  ~/scratch.cmsc663/twins_402/default/ckpt_epoch_113.pth
+python eval.py --model polyvit --model_card timm/vit_small_patch16_224.augreg_in1k --data_path ~/scratch.cmsc663/val/ --batch_size 256 --random_erasing --pretrained_path  ~/scratch.cmsc663/pvit_small_w/default/ckpt_epoch_82.pth
 
 # print model name and attack mode
-echo "model: twins"
+echo "model: vit"
 echo "attack mode: random_affine"
-python eval.py --model twins --data_path ~/scratch.cmsc663/val/ --batch_size 256 --random_affine
+python eval.py --model vit --model_card timm/vit_small_patch16_224.augreg_in1k --data_path ~/scratch.cmsc663/val/ --batch_size 256 --random_affine --pretrained_path ~/scratch.cmsc663/vit_small_411_w/default/ckpt_epoch_44.pth
 
 echo "attack mode: random_perspective"
-python eval.py --model twins --data_path ~/scratch.cmsc663/val/ --batch_size 256 --random_perspective
+python eval.py --model vit --model_card timm/vit_small_patch16_224.augreg_in1k --data_path ~/scratch.cmsc663/val/ --batch_size 256 --random_perspective --pretrained_path ~/scratch.cmsc663/vit_small_411_w/default/ckpt_epoch_44.pth
 
 echo "attack mode: crop"
-python eval.py --model twins --data_path ~/scratch.cmsc663/val/ --batch_size 256 --crop
+python eval.py --model vit --model_card timm/vit_small_patch16_224.augreg_in1k --data_path ~/scratch.cmsc663/val/ --batch_size 256 --crop --pretrained_path ~/scratch.cmsc663/vit_small_411_w/default/ckpt_epoch_44.pth
 
 echo "attack mode: flip"
-python eval.py --model twins --data_path ~/scratch.cmsc663/val/ --batch_size 256 --flip
+python eval.py --model vit --model_card timm/vit_small_patch16_224.augreg_in1k --data_path ~/scratch.cmsc663/val/ --batch_size 256 --flip --pretrained_path ~/scratch.cmsc663/vit_small_411_w/default/ckpt_epoch_44.pth
 
 echo "attack mode: random_erasing"
-python eval.py --model twins --data_path ~/scratch.cmsc663/val/ --batch_size 256 --random_erasing
+python eval.py --model vit --model_card timm/vit_small_patch16_224.augreg_in1k --data_path ~/scratch.cmsc663/val/ --batch_size 256 --random_erasing --pretrained_path ~/scratch.cmsc663/vit_small_411_w/default/ckpt_epoch_44.pth

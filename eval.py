@@ -103,6 +103,7 @@ def main(args):
     if args.pretrained_path:
         config  = _C.clone()
         config.MODEL.TYPE = args.model
+        config.MODEL.CARD = args.model_card
         try: 
             model = build_model(config)
             ckpt = torch.load(args.pretrained_path, map_location=device)
