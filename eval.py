@@ -262,13 +262,26 @@ def main(args):
         consistency = consistent / total
         end_time = time.time() - start
         
-
+    # print out the attacks used
+    if args.random_perspective:
+        print("Random Perspective Attack")
+    if args.random_affine:
+        print("Random Affine Attack")
+    if args.crop:
+        print("Crop Attack")
+    if args.random_erasing:
+        print("Random Erasing Attack")
+    if args.flip:
+        print("Horizontal Flip Attack")
+    if args.all_attack:
+        print("All Attacks")
     # Print the results
     print("Time Elapsed {:.4f}".format(end_time))
     print(args.model)
     print('Average Loss: {:.4f}, Accuracy: {:.4f}, Consistency {:.4f}'.format(average_loss, accuracy, consistency))
     if args.model_card:
         print("Using model card: ", args.model_card)
+    
 
 if __name__ == '__main__':
     args = parse_args()
