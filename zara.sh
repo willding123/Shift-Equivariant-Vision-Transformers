@@ -1,14 +1,15 @@
 #!/bin/bash
 # bash script for single node gpu training 
 #SBATCH --partition=gpu
-#SBATCH -N 1
 #SBATCH -c 8
+#SBATCH --mem=40G
+#SBATCH --ntasks=1
 ##SBATCH --gpus=a100_1g.5gb:1
-#SBATCH --gpus=a100:2
+#SBATCH --gpus=a100:1
 #SBATCH --time=1-12:00:00
-#SBATCH --job-name=vit
-#SBATCH --output=vit.out
-#SBATCH --error=vit.err
+#SBATCH --job-name=pbvit
+#SBATCH --output=pbvit.out
+#SBATCH --error=pbvit.err
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=pding@umd.edu
 
@@ -22,8 +23,8 @@ cd ~/scratch.cmsc663/Swin-Transformer
 # torchrun  --nproc_per_node 4  main.py --cfg configs/swin/poly_vit_tiny_0217.yaml --data-path /fs/cml-datasets/ImageNet/ILSVRC2012 --output /fs/nexus-projects/shift-equivariant_vision_transformer 
 export WANDB_MODE="offline"
 # export CUDA_LAUNCH_BLOCKING=1
-
-torchrun --nproc_per_node 2  --nnodes 1 --master_port 22301 main.py --cfg configs/vit_small_w.yaml --data-path ~/scratch.cmsc663 --output ~/scratch.cmsc663 
+echo "Number of nodes used: $(scontrol show hostname $SLURM_JOB_NODELIST | wc -l)"
+torchrun --nproc_per_node 1 --nnodes 1 --master_port 29280 main.py --cfg configs/pvit_base_w.yaml --data-path ~/scratch.cmsc663 --output ~/scratch.cmsc663 
 
 # eval 
 # torchrun --nproc_per_node 1  --nnodes 1 --master_port 41342 main.py --eval --cfg configs/swin/pretrained.yaml --data-path ~/scratch.cmsc663 --output ~/scratch.cmsc663 

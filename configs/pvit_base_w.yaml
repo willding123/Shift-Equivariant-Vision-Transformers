@@ -1,0 +1,25 @@
+MODEL:
+  TYPE: polyvit
+  NAME: pvit_base_416_w
+  PRETRAINED: False
+  CARD: "timm/vit_base_patch16_224.augreg_in1k"
+
+DATA:
+  BATCH_SIZE: 256
+  NUM_WORKERS: 8
+  MEAN: [0.5, 0.5, 0.5]
+  STD: [0.5, 0.5, 0.5]
+
+TRAIN:
+  WARMUP_EPOCHS: 20
+  WARMUP_LR: 1e-6
+  BASE_LR: 1e-4
+  MIN_LR: 1e-5
+  WEIGHT_DECAY: 0.1
+
+# TRAIN:
+#   WARMUP_EPOCHS: 20
+#   WARMUP_LR: 1e-5
+#   BASE_LR: 1e-3
+#   MIN_LR: 1e-5
+#   WEIGHT_DECAY: 0.1

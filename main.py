@@ -98,8 +98,8 @@ def main(config):
             transforms.CenterCrop(224),
             transforms.ToTensor(),
             transforms.Normalize(
-                mean=IMAGENET_INCEPTION_MEAN,
-                std=IMAGENET_INCEPTION_STD
+                mean=config.DATA.MEAN,
+                std=config.DATA.STD
             )
         ])
         dataset_train = datasets.ImageNet(config.DATA.DATA_PATH, split='train', transform=transform)
@@ -170,9 +170,9 @@ def main(config):
         ## TODO: add consistency evaluation 
         max_accuracy = load_checkpoint(config, model_without_ddp, optimizer, lr_scheduler, loss_scaler, logger)
         acc1, acc5, loss = validate(config, data_loader_val, model)
-        logger.info(f"Shift Size {config.DATA.SHIFT_SIZE}")
+        # logger.info(f"Shift Size {config.DATA.SHIFT_SIZE}")
         # acc1_adv, acc5_adv, loss_adv = validate(config, data_loader_val_adv, model)
-        logger.info(f"Accuracy of the network on the {len(dataset_val)} test images: {acc1:.1f}%")
+        # logger.info(f"Accuracy of the network on the {len(dataset_val)} test images: {acc1:.1f}%")
         # logger.info(f"Accuracy of the network on the {len(dataset_val)} test shifted images: {acc1_adv:.1f}%")
         if run is not None:
             run.log({"Initial Accuracy": acc1, "Initial Loss": loss, "Initial Top5 Accuracy": acc5})
@@ -183,9 +183,9 @@ def main(config):
     if config.MODEL.PRETRAINED and (not config.MODEL.RESUME):
         # load_pretrained(config, model_without_ddp, logger) #FIXME control some other way
         acc1, acc5, loss = validate(config, data_loader_val, model)
-        logger.info(f"Shift Size {config.DATA.SHIFT_SIZE}")
+        # logger.info(f"Shift Size {config.DATA.SHIFT_SIZE}")
         # acc1_adv, acc5_adv, loss_adv = validate(config, data_loader_val_adv, model)
-        logger.info(f"Accuracy of the network on the {len(dataset_val)} test images: {acc1:.1f}%")
+        # logger.info(f"Accuracy of the network on the {len(dataset_val)} test images: {acc1:.1f}%")
         # logger.info(f"Accuracy of the network on the {len(dataset_val)} test shifted images: {acc1_adv:.1f}%")
         if run is not None:
             # "InitialAccuracy": acc1, "InitialLoss": loss
