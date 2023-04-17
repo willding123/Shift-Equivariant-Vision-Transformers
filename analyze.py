@@ -8,7 +8,7 @@ def process(dir_path, file_name, acc_ls):
             # iterate through each line in the file
             for line in file:
             # use a regular expression to tokenize the line
-                if "INFO  * Acc@1" in line: 
+                if "Accuracy of the network on the" in line: 
                     #INFO Max accuracy: 2.90%
                     match  = re.search(r"\d+\.\d+", line)
                     if match:
@@ -20,7 +20,7 @@ waitlist = []
 # directory where the log_rank files are located
 # dir_path = "/fs/nexus-scratch/pding/output/swin_tiny_patch4_window7_1k_default/default"
 # dir_path = "/fs/nexus-projects/shift-equivariant_vision_transformer/poly_swin_tiny_0215/default"
-dir_path = "/home/pding/scratch.cmsc663/twins_svts_w/default"
+dir_path = "/home/pding/scratch.cmsc663/pvit_small_w/default"
 i = 0
 # iterate through the files in the directory
 for file_name in os.listdir(dir_path):
@@ -59,7 +59,7 @@ from scipy.optimize import curve_fit
 if len(acc_ls) < 50: 
     popt, pcov = curve_fit(power_law, range(1, len(acc_ls)+1), acc_ls)
 else:
-    popt, pcov = curve_fit(power_law, range(1, len(acc_ls)+1), acc_ls[:], maxfev=15000)
+    popt, pcov = curve_fit(power_law, range(51, len(acc_ls)+1), acc_ls[50:], maxfev=15000)
 
 # plot the data and the fitted function
 fig, ax = plt.subplots()
@@ -83,7 +83,7 @@ ax.legend()
 plt.show()
 
 # extrapolate the data to n epochs: "extrapolate to n epochs:"
-n = 300
+n = 800
 print(f"extrapolate to {n} epochs: ", power_law(n, *popt))
 
 # %%
