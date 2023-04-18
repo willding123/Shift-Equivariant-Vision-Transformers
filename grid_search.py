@@ -8,10 +8,11 @@ from tqdm import tqdm
 import timm
 from torch.utils.data import DataLoader, Subset
 
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # Load the pre-trained vision transformer model
-model = timm.create_model("hf_hub:timm/vit_base_patch16_224.augreg_in21k_ft_in1k", pretrained=True).cuda()
-
+model = timm.create_model("hf_hub:timm/vit_base_patch16_224.augreg_in21k_ft_in1k", pretrained=True)
+model.to(device)
 # Load the ImageNet dataset
 transform = transforms.Compose([
             transforms.Resize(size = 256, interpolation=InterpolationMode.BICUBIC),
@@ -26,11 +27,9 @@ data_path = "/home/pding/scratch.cmsc663/val/"
 dataset = torchvision.datasets.ImageFolder(data_path, transform=transform)
 
 # Sample a subset of 10000 images from the dataset
-subset_indices = random.sample(range(len(dataset)), 10000)
+subset_indices = random.sample(range(len(dataset)), 512)
 subset = Subset(dataset, subset_indices)
 
-# Create a DataLoader for the dataset
-dataloader = DataLoader(dataset, batch_size=512, shuffle=True)
 
 # Define a function to perform the data augmentation by randomly shifting the images
 def shift_image(image, shift):
@@ -47,6 +46,8 @@ def evaluate(model, dataloader):
     total = 0
     with torch.no_grad():
         for images, labels in dataloader:
+            images = images.to(device)
+            labels = labels.to(device)
             outputs = model(images)
             _, predicted = torch.max(outputs, 1)
             total += labels.size(0)
@@ -54,8 +55,7 @@ def evaluate(model, dataloader):
     accuracy = correct / total
     return accuracy
 
-# Sample a subset of 10000 images from the dataset
-subset = random.sample(dataset, 10000)
+
 
 # Initialize variables to store the minimum accuracy found so far and the corresponding shift size
 min_accuracy = float('inf')
@@ -65,10 +65,12 @@ min_shift = None
 for x_shift in range(-15, 16):
     for y_shift in range(-15, 16):
         shift = (x_shift, y_shift)
+        subset_indices = random.sample(range(len(dataset)), 512)
+        subset = Subset(dataset, subset_indices)
         # Augment the subset by shifting the images
         augmented_subset = [(shift_image(image, shift), label) for image, label in subset]
         # Create a DataLoader for the augmented subset
-        dataloader = DataLoader(augmented_subset, batch_size=512, shuffle=True).cuda()
+        dataloader = DataLoader(augmented_subset, batch_size=512, shuffle=True)
         # Evaluate the accuracy of the model on the augmented subset using the DataLoader
         accuracy = evaluate(model, dataloader)
         # Update the minimum accuracy and the corresponding shift size if necessary
