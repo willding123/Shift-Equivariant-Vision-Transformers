@@ -8,11 +8,15 @@ from tqdm import tqdm
 import timm
 from torch.utils.data import DataLoader, Subset
 
+# clear cache 
+torch.cuda.empty_cache()
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # Load the pre-trained vision transformer model
 model = timm.create_model("hf_hub:timm/vit_base_patch16_224.augreg_in21k_ft_in1k", pretrained=True)
 model.to(device)
+model.eval()
+
 # Load the ImageNet dataset
 transform = transforms.Compose([
             transforms.Resize(size = 256, interpolation=InterpolationMode.BICUBIC),
@@ -29,23 +33,24 @@ dataset = torchvision.datasets.ImageFolder(data_path, transform=transform)
 # Sample a subset of 10000 images from the dataset
 subset_indices = random.sample(range(len(dataset)), 512)
 subset = Subset(dataset, subset_indices)
+dataloader = DataLoader(subset, batch_size=256, shuffle=True)
 
 
 # Define a function to perform the data augmentation by randomly shifting the images
 def shift_image(image, shift):
     """Shift an image by the given amount."""
     x_shift, y_shift = shift
-    image = torch.roll(image, shifts=(x_shift, y_shift), dims=(1, 2))
+    image = torch.roll(image, shifts=(x_shift, y_shift), dims=(2, 3))
     return image
 
-# Define a function to evaluate the accuracy of the model on a dataset
-def evaluate(model, dataloader):
+# Define a function to evaluate the accuracy of the model on a shifted dataset given shift size, the model, and the dataset
+def evaluate(model, dataloader, shift):
     """Evaluate the accuracy of the given model on the given dataset."""
-    model.eval()
     correct = 0
     total = 0
     with torch.no_grad():
         for images, labels in dataloader:
+            images = shift_image(images, shift)
             images = images.to(device)
             labels = labels.to(device)
             outputs = model(images)
@@ -61,18 +66,13 @@ def evaluate(model, dataloader):
 min_accuracy = float('inf')
 min_shift = None
 
+
 # Iterate through all the shift sizes in the given range and find the one with the lowest accuracy
-for x_shift in range(-15, 16):
+for x_shift in tqdm(range(-15, 16)):
     for y_shift in range(-15, 16):
         shift = (x_shift, y_shift)
-        subset_indices = random.sample(range(len(dataset)), 512)
-        subset = Subset(dataset, subset_indices)
-        # Augment the subset by shifting the images
-        augmented_subset = [(shift_image(image, shift), label) for image, label in subset]
-        # Create a DataLoader for the augmented subset
-        dataloader = DataLoader(augmented_subset, batch_size=512, shuffle=True)
         # Evaluate the accuracy of the model on the augmented subset using the DataLoader
-        accuracy = evaluate(model, dataloader)
+        accuracy = evaluate(model, dataloader, shift)
         # Update the minimum accuracy and the corresponding shift size if necessary
         if accuracy < min_accuracy:
             min_accuracy = accuracy
