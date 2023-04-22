@@ -20,7 +20,7 @@ waitlist = []
 # directory where the log_rank files are located
 # dir_path = "/fs/nexus-scratch/pding/output/swin_tiny_patch4_window7_1k_default/default"
 # dir_path = "/fs/nexus-projects/shift-equivariant_vision_transformer/poly_swin_tiny_0215/default"
-dir_path = "/home/pding/scratch.cmsc663/pvit_small_w/default"
+dir_path = "/home/pding/scratch.cmsc663/pvit_base_416_w/default"
 i = 0
 # iterate through the files in the directory
 for file_name in os.listdir(dir_path):
@@ -43,7 +43,11 @@ for file_name in os.listdir(dir_path):
 fig, ax = plt.subplots()
 ax.plot(acc_ls)
 plt.show()
-print(max(acc_ls), acc_ls.index(max(acc_ls)))
+# print name of the model
+print("Model: ", dir_path.split("/")[-2]) 
+# print max accuracy and the epoch it occurs and description
+print("Max accuracy: ", max(acc_ls), "at epoch: ", acc_ls.index(max(acc_ls)))
+print("Last accuracy: ", acc_ls[-1], "at epoch: ", len(acc_ls)-1)
 # display the plot using log base 2 scale for both x and y axis
 ax.set_xscale('log', basex=10)
 # ax.plot(acc_ls)
@@ -56,8 +60,8 @@ def power_law(x, a, b, c):
 
 # fit the data using curve_fit
 from scipy.optimize import curve_fit
-if len(acc_ls) < 50: 
-    popt, pcov = curve_fit(power_law, range(1, len(acc_ls)+1), acc_ls)
+if len(acc_ls) < 100: 
+    popt, pcov = curve_fit(power_law, range(1, len(acc_ls)+1), acc_ls, maxfev=15000)
 else:
     popt, pcov = curve_fit(power_law, range(51, len(acc_ls)+1), acc_ls[50:], maxfev=15000)
 
@@ -83,7 +87,7 @@ ax.legend()
 plt.show()
 
 # extrapolate the data to n epochs: "extrapolate to n epochs:"
-n = 800
+n = 300
 print(f"extrapolate to {n} epochs: ", power_law(n, *popt))
 
 # %%
