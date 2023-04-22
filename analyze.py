@@ -40,18 +40,6 @@ for file_name in os.listdir(dir_path):
     else: 
         waitlist.append(file_name)
 
-fig, ax = plt.subplots()
-ax.plot(acc_ls)
-plt.show()
-# print name of the model
-print("Model: ", dir_path.split("/")[-2]) 
-# print max accuracy and the epoch it occurs and description
-print("Max accuracy: ", max(acc_ls), "at epoch: ", acc_ls.index(max(acc_ls)))
-print("Last accuracy: ", acc_ls[-1], "at epoch: ", len(acc_ls)-1)
-# display the plot using log base 2 scale for both x and y axis
-ax.set_xscale('log', basex=10)
-# ax.plot(acc_ls)
-plt.show()
 #%%
 # write a power law function
 # write a power law function with three parameters a, b, and c
@@ -72,22 +60,38 @@ ax.plot(range(1, len(acc_ls)+1), power_law(range(1, len(acc_ls)+1), *popt), 'r-'
 # ax.set_xscale('log', basex=10)
 # ax.set_yscale('log', basey=10)
 ax.legend()
-
+# add names to the x and y axis
+ax.set_xlabel('Epoch')
+ax.set_ylabel('Accuracy')
+# add a title to the plot
+ax.set_title('Accuracy vs Epoch')
+# print name of the model
+print("Model: ", dir_path.split("/")[-2]) 
+# print max accuracy and the epoch it occurs and description
+print("Max accuracy: ", max(acc_ls), "at epoch: ", acc_ls.index(max(acc_ls)))
+print("Last accuracy: ", acc_ls[-1], "at epoch: ", len(acc_ls)-1)
 # display the plot
 plt.show()
 
 # plot the extrapolated data
+extra = 50
 fig, ax = plt.subplots()
 ax.plot(range(1, len(acc_ls)+1), acc_ls, 'o', label='data')
 ax.plot(range(1, len(acc_ls)+1), power_law(range(1, len(acc_ls)+1), *popt), 'r-', label='fit')
-ax.plot(range(1, len(acc_ls)+50), power_law(range(1, len(acc_ls)+50), *popt), 'g-', label='extrapolation')
+ax.plot(range(1, len(acc_ls)+50), power_law(range(1, len(acc_ls)+extra), *popt), 'g-', label='extrapolation')
 # ax.set_xscale('log', basex=10)
 # ax.set_yscale('log', basey=10)
+# add names to the x and y axis
+ax.set_xlabel('Epoch')
+ax.set_ylabel('Accuracy')
+# add a title to the plot
+ax.set_title('Extrapolated Accuracy vs Epoch')
 ax.legend()
 plt.show()
 
 # extrapolate the data to n epochs: "extrapolate to n epochs:"
 n = 300
+print(f"extrapolate to {extra} epochs: ", power_law(n, *popt))
 print(f"extrapolate to {n} epochs: ", power_law(n, *popt))
 
 # %%
