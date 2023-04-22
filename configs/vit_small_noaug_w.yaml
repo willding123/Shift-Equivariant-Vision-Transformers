@@ -1,0 +1,38 @@
+MODEL:
+  TYPE: vit
+  NAME: vit_small_noaug_419_w
+  PRETRAINED: False
+  CARD: "timm/vit_small_patch16_224.augreg_in1k"
+
+DATA:
+  BATCH_SIZE: 256
+  NUM_WORKERS: 16
+  MEAN: [0.5, 0.5, 0.5]
+  STD: [0.5, 0.5, 0.5]
+
+TRAIN:
+  WARMUP_EPOCHS: 20
+  WARMUP_LR: 1e-5
+  BASE_LR: 1e-5
+  MIN_LR: 1e-5
+  WEIGHT_DECAY: 0.1
+
+AUG:
+  MIXUP: 0.0
+  NO_AUG: True
+
+
+# TRAIN:
+#   WARMUP_EPOCHS: 20
+#   WARMUP_LR: 1e-5
+#   BASE_LR: 1e-4
+#   MIN_LR: 1e-6
+#   WEIGHT_DECAY: 0.01
+
+# TRAIN:
+#   WARMUP_EPOCHS: 20
+#   WARMUP_LR: 1e-5
+#   BASE_LR: 1e-3
+#   MIN_LR: 1e-5
+#   WEIGHT_DECAY: 0.1
+
