@@ -8,6 +8,11 @@ from tqdm import tqdm
 import timm
 from torch.utils.data import DataLoader, Subset
 
+# TODO: test on a subset of the dataset
+# set the random seed
+random.seed(0)
+torch.manual_seed(0)
+
 # clear cache 
 torch.cuda.empty_cache()
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")

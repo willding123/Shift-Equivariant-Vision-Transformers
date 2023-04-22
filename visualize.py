@@ -15,6 +15,7 @@ from tqdm import tqdm
 from config import _C
 from models.build import build_model
 
+## TODO: export figures to a shared folder 
 # set random seed for reproducibility
 torch.manual_seed(0)
 np.random.seed(0)
