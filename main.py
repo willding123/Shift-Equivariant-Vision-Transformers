@@ -130,7 +130,10 @@ def main(config):
     optimizer = build_optimizer(config, model)
     model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[config.LOCAL_RANK], broadcast_buffers=False)
     if config.LOCAL_RANK == 0:
+        os.environ['WANDB_MODE'] = 'offline'
         run = wandb.init(config = config, project="test-project", entity="swin-transformer-poly", group = "William", name = config.MODEL.NAME)
+        print(run.settings._offline)
+
     else:
         run = None
 
@@ -216,7 +219,6 @@ def main(config):
         train_one_epoch(config, model, criterion, data_loader_train, optimizer, epoch, mixup_fn, lr_scheduler,
                         loss_scaler, run)
         if dist.get_rank() == 0 and (epoch % config.SAVE_FREQ == 0 or epoch == (config.TRAIN.EPOCHS - 1)):
-        # if  (epoch % config.SAVE_FREQ == 0 or epoch == (config.TRAIN.EPOCHS - 1)):
             save_checkpoint(config, epoch, model_without_ddp, max_accuracy, optimizer, lr_scheduler, loss_scaler,
                             logger)
 
