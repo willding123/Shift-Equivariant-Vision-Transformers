@@ -14,7 +14,7 @@ from .swin_mlp import SwinMLP
 from .simmim import build_simmim
 import timm 
 from .poly_utils import *
-from .vision_transformer import PolyViT
+from .vision_transformer import PolyViT, PosViT
 from .polytwins import PolyTwins
 
 
@@ -95,7 +95,11 @@ def build_model(config):
             model = timm.create_model(config.MODEL.CARD, pretrained=config.MODEL.PRETRAINED)
         else:
             model = timm.create_model("twins_svt_small", pretrained=config.MODEL.PRETRAINED)
-    
+    elif model_type == "posvit":
+        if config.MODEL.CARD:
+            model = PosViT(config.MODEL.CARD, pretrained=config.MODEL.PRETRAINED)
+        else:
+            model = PosViT("timm/vit_small_patch16_224.augreg_in1k", pretrained=config.MODEL.PRETRAINED)
     else:
         raise NotImplementedError(f"Unkown model: {model_type}")
 
