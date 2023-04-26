@@ -1,0 +1,6 @@
+polyvit,timm/vit_small_patch16_224.augreg_in1k,0.75086,0.99998,False,False,False,False,False,False,True,0.5,30,"(0.1, 0.1)","(0.8, 1.2)",10,224,10,1.7783399644470215,88.20752167701721
+polyvit,timm/vit_small_patch16_224.augreg_in1k,0.7005,1.0,False,True,False,False,False,False,True,0.5,30,"(0.1, 0.1)","(0.8, 1.2)",10,224,10,1.929449172744751,88.77511525154114
+polyvit,timm/vit_small_patch16_224.augreg_in1k,0.7249,1.0,True,False,False,False,False,False,True,0.5,30,"(0.1, 0.1)","(0.8, 1.2)",10,224,10,1.891233008041382,88.89934062957764
+polyvit,timm/vit_small_patch16_224.augreg_in1k,0.74858,1.0,False,False,True,False,False,False,True,0.5,30,"(0.1, 0.1)","(0.8, 1.2)",10,224,10,1.832896266937256,87.11178088188171
+polyvit,timm/vit_small_patch16_224.augreg_in1k,0.7509,0.99998,False,False,False,False,True,False,True,0.5,30,"(0.1, 0.1)","(0.8, 1.2)",10,224,10,1.7795221962738037,86.5864200592041
+polyvit,timm/vit_small_patch16_224.augreg_in1k,0.73486,0.99998,False,False,False,True,False,False,True,0.5,30,"(0.1, 0.1)","(0.8, 1.2)",10,224,10,1.7440915368652343,87.69546723365784

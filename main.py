@@ -130,7 +130,7 @@ def main(config):
     optimizer = build_optimizer(config, model)
     model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[config.LOCAL_RANK], broadcast_buffers=False)
     if config.LOCAL_RANK == 0:
-        os.environ['WANDB_MODE'] = 'offline'
+        os.environ["WANDB_MODE"] = "dryrun"
         run = wandb.init(config = config, project="test-project", entity="swin-transformer-poly", group = "William", name = config.MODEL.NAME)
         print(run.settings._offline)
 

@@ -18,17 +18,17 @@ cd ~/scratch.cmsc663/Swin-Transformer
 
 # eval
 # print model name and attack mode
-python eval.py --model polyvit --model_card timm/vit_small_patch16_224.augreg_in1k --data_path ~/scratch.cmsc663/val/ --batch_size 512 --pretrained_path  ~/scratch.cmsc663/pvit_small_w/default/ckpt_epoch_204.pth
-python eval.py --model polyvit --model_card timm/vit_small_patch16_224.augreg_in1k --data_path ~/scratch.cmsc663/val/ --batch_size 512 --random_affine --pretrained_path  ~/scratch.cmsc663/pvit_small_w/default/ckpt_epoch_204.pth
-python eval.py --model polyvit --model_card timm/vit_small_patch16_224.augreg_in1k --data_path ~/scratch.cmsc663/val/ --batch_size 512 --random_perspective --pretrained_path  ~/scratch.cmsc663/pvit_small_w/default/ckpt_epoch_204.pth
-python eval.py --model polyvit --model_card timm/vit_small_patch16_224.augreg_in1k --data_path ~/scratch.cmsc663/val/ --batch_size 512 --crop --pretrained_path  ~/scratch.cmsc663/pvit_small_w/default/ckpt_epoch_204.pth
-python eval.py --model polyvit --model_card timm/vit_small_patch16_224.augreg_in1k --data_path ~/scratch.cmsc663/val/ --batch_size 512 --flip --pretrained_path  ~/scratch.cmsc663/pvit_small_w/default/ckpt_epoch_204.pth
-python eval.py --model polyvit --model_card timm/vit_small_patch16_224.augreg_in1k --data_path ~/scratch.cmsc663/val/ --batch_size 512 --random_erasing --pretrained_path  ~/scratch.cmsc663/pvit_small_w/default/ckpt_epoch_204.pth
+python eval.py --model polyvit --model_card timm/vit_small_patch16_224.augreg_in1k --data_path ~/scratch.cmsc663/val/ --batch_size 512 --pretrained_path  ~/scratch.cmsc663/pvit_small_427_w
+python eval.py --model polyvit --model_card timm/vit_small_patch16_224.augreg_in1k --data_path ~/scratch.cmsc663/val/ --batch_size 512 --random_affine --pretrained_path  ~/scratch.cmsc663/pvit_small_427_w
+python eval.py --model polyvit --model_card timm/vit_small_patch16_224.augreg_in1k --data_path ~/scratch.cmsc663/val/ --batch_size 512 --random_perspective --pretrained_path  ~/scratch.cmsc663/pvit_small_427_w
+python eval.py --model polyvit --model_card timm/vit_small_patch16_224.augreg_in1k --data_path ~/scratch.cmsc663/val/ --batch_size 512 --crop --pretrained_path  ~/scratch.cmsc663/pvit_small_427_w
+python eval.py --model polyvit --model_card timm/vit_small_patch16_224.augreg_in1k --data_path ~/scratch.cmsc663/val/ --batch_size 512 --flip --pretrained_path  ~/scratch.cmsc663/pvit_small_427_w
+python eval.py --model polyvit --model_card timm/vit_small_patch16_224.augreg_in1k --data_path ~/scratch.cmsc663/val/ --batch_size 512 --random_erasing --pretrained_path  ~/scratch.cmsc663/pvit_small_427_w
 
-# print model name and attack mode
-python eval.py --model vit --model_card timm/vit_small_patch16_224.augreg_in1k --data_path ~/scratch.cmsc663/val/ --batch_size 512 --pretrained_path ~/scratch.cmsc663/vit_small_411_w/default/ckpt_epoch_206.pth
-python eval.py --model vit --model_card timm/vit_small_patch16_224.augreg_in1k --data_path ~/scratch.cmsc663/val/ --batch_size 512 --random_affine --pretrained_path ~/scratch.cmsc663/vit_small_411_w/default/ckpt_epoch_206.pth
-python eval.py --model vit --model_card timm/vit_small_patch16_224.augreg_in1k --data_path ~/scratch.cmsc663/val/ --batch_size 512 --random_perspective --pretrained_path ~/scratch.cmsc663/vit_small_411_w/default/ckpt_epoch_206.pth
-python eval.py --model vit --model_card timm/vit_small_patch16_224.augreg_in1k --data_path ~/scratch.cmsc663/val/ --batch_size 512 --crop --pretrained_path ~/scratch.cmsc663/vit_small_411_w/default/ckpt_epoch_206.pth
-python eval.py --model vit --model_card timm/vit_small_patch16_224.augreg_in1k --data_path ~/scratch.cmsc663/val/ --batch_size 512 --flip --pretrained_path ~/scratch.cmsc663/vit_small_411_w/default/ckpt_epoch_206.pth
-python eval.py --model vit --model_card timm/vit_small_patch16_224.augreg_in1k --data_path ~/scratch.cmsc663/val/ --batch_size 512 --random_erasing --pretrained_path ~/scratch.cmsc663/vit_small_411_w/default/ckpt_epoch_206.pth
+# # print model name and attack mode
+# python eval.py --model vit --model_card timm/vit_small_patch16_224.augreg_in1k --data_path ~/scratch.cmsc663/val/ --batch_size 512 --pretrained_path ~/scratch.cmsc663/vit_small_411_w/default/ckpt_epoch_206.pth
+# python eval.py --model vit --model_card timm/vit_small_patch16_224.augreg_in1k --data_path ~/scratch.cmsc663/val/ --batch_size 512 --random_affine --pretrained_path ~/scratch.cmsc663/vit_small_411_w/default/ckpt_epoch_206.pth
+# python eval.py --model vit --model_card timm/vit_small_patch16_224.augreg_in1k --data_path ~/scratch.cmsc663/val/ --batch_size 512 --random_perspective --pretrained_path ~/scratch.cmsc663/vit_small_411_w/default/ckpt_epoch_206.pth
+# python eval.py --model vit --model_card timm/vit_small_patch16_224.augreg_in1k --data_path ~/scratch.cmsc663/val/ --batch_size 512 --crop --pretrained_path ~/scratch.cmsc663/vit_small_411_w/default/ckpt_epoch_206.pth
+# python eval.py --model vit --model_card timm/vit_small_patch16_224.augreg_in1k --data_path ~/scratch.cmsc663/val/ --batch_size 512 --flip --pretrained_path ~/scratch.cmsc663/vit_small_411_w/default/ckpt_epoch_206.pth
+# python eval.py --model vit --model_card timm/vit_small_patch16_224.augreg_in1k --data_path ~/scratch.cmsc663/val/ --batch_size 512 --random_erasing --pretrained_path ~/scratch.cmsc663/vit_small_411_w/default/ckpt_epoch_206.pth

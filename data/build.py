@@ -162,6 +162,8 @@ def build_transform(is_train, config, roll = False):
             re_mode=config.AUG.REMODE,
             re_count=config.AUG.RECOUNT,
             interpolation=config.DATA.INTERPOLATION,
+            mean=config.DATA.MEAN,
+            std=config.DATA.STD
         )
         if not resize_im:
             # replace RandomResizedCropAndInterpolation with

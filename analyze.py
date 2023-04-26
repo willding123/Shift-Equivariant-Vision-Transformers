@@ -20,7 +20,8 @@ waitlist = []
 # directory where the log_rank files are located
 # dir_path = "/fs/nexus-scratch/pding/output/swin_tiny_patch4_window7_1k_default/default"
 # dir_path = "/fs/nexus-projects/shift-equivariant_vision_transformer/poly_swin_tiny_0215/default"
-dir_path = "/home/pding/scratch.cmsc663/pvit_base_416_w/default"
+dir_path = "/home/pding/scratch.cmsc663/pvit_small_423_w/default"
+# dir_path = "/scratch/zt1/project/furongh-prj/shared/pvit_base_416_w/default"
 i = 0
 # iterate through the files in the directory
 for file_name in os.listdir(dir_path):
@@ -54,9 +55,10 @@ else:
     popt, pcov = curve_fit(power_law, range(51, len(acc_ls)+1), acc_ls[50:], maxfev=15000)
 
 # plot the data and the fitted function
+step = 1
 fig, ax = plt.subplots()
-ax.plot(range(1, len(acc_ls)+1), acc_ls, 'o', label='data')
-ax.plot(range(1, len(acc_ls)+1), power_law(range(1, len(acc_ls)+1), *popt), 'r-', label='fit')
+ax.plot(range(1, len(acc_ls)+1, step), acc_ls, 'o', label='data')
+ax.plot(range(1, len(acc_ls)+1, step), power_law(range(1, len(acc_ls)+1), *popt), 'r-', label='fit')
 # ax.set_xscale('log', basex=10)
 # ax.set_yscale('log', basey=10)
 ax.legend()
@@ -76,9 +78,9 @@ plt.show()
 # plot the extrapolated data
 extra = 50
 fig, ax = plt.subplots()
-ax.plot(range(1, len(acc_ls)+1), acc_ls, 'o', label='data')
-ax.plot(range(1, len(acc_ls)+1), power_law(range(1, len(acc_ls)+1), *popt), 'r-', label='fit')
-ax.plot(range(1, len(acc_ls)+50), power_law(range(1, len(acc_ls)+extra), *popt), 'g-', label='extrapolation')
+ax.plot(range(1, len(acc_ls)+1, step), acc_ls, 'o', label='data')
+ax.plot(range(1, len(acc_ls)+1, step), power_law(range(1, len(acc_ls)+1), *popt), 'r-', label='fit')
+ax.plot(range(1, len(acc_ls)+50, step), power_law(range(1, len(acc_ls)+extra), *popt), 'g-', label='extrapolation')
 # ax.set_xscale('log', basex=10)
 # ax.set_yscale('log', basey=10)
 # add names to the x and y axis
