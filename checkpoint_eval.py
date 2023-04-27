@@ -25,6 +25,7 @@ from math import sqrt
 from models.vision_transformer import PolyViT
 from models.polytwins import PolyTwins
 import argparse
+import matplotlib.pyplot as plt
 
 from pathlib import Path
 
@@ -151,6 +152,12 @@ def main(args, config):
 
     last_checkpoint = max(checkpoints)
 
+    # This could ideally be done with a dataframe or other datatype, but pandas is not installed
+    metrics_ckpt_epochs = []
+    metrics_loss = []
+    metrics_accuracy = []
+    metrics_consistency = []
+
     for ckpt_epoch in range(0, last_checkpoint+1, args.k):
         # Generate full checkpoint .pth file path
         if not checkpoint_path.joinpath(f"ckpt_epoch_{ckpt_epoch}.pth").exists():  # The checkpoint we want for our given k does not exist. Give warning.
@@ -245,6 +252,30 @@ def main(args, config):
             
             print("Checkpoint Epoch {} Time Elapsed {:.4f}".format(ckpt_epoch, end_time))
             print('Checkpoint Epoch {} Average Loss: {:.4f}, Accuracy: {:.4f}, Consistency {:.4f}'.format(ckpt_epoch, average_loss, accuracy, consistency))
+            metrics_ckpt_epochs.append(ckpt_epoch)
+            metrics_loss.append(average_loss)
+            metrics_accuracy.append(accuracy)
+            metrics_consistency.append(consistency)
+
+
+    # Plotting stats
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
+    fig.suptitle(f'Metrics for {config.MODEL.CARD} Every {args.k} Checkpoints')
+    fig.set_figheight(5)
+    fig.set_figwidth(15)
+    fig.subplots_adjust(wspace=0.8)
+    # fig.tight_layout()
+
+    # TODO: Make the multiplot wider - all subplots are squeezed together 
+    ax1.plot(metrics_ckpt_epochs, metrics_loss)
+    ax1.set(xlabel='Checkpoint Epoch', ylabel='Loss')
+    ax2.plot(metrics_ckpt_epochs, metrics_accuracy)
+    ax2.set(xlabel='Checkpoint Epoch', ylabel='Accuracy')
+    ax3.plot(metrics_ckpt_epochs, metrics_consistency)
+    ax3.set(xlabel='Checkpoint Epoch', ylabel='Consistency')
+    main_model_str = config.MODEL.NAME # .split("/")[-1:]
+    fig.savefig(f"./figures/{main_model_str}_every_{args.k}_checkpoints.png")
+    
 
 
 if __name__ == '__main__':
