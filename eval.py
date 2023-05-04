@@ -35,10 +35,10 @@ def parse_args():
     parser.add_argument('--model', type=str, required=True, metavar="FILE", help='model name' )
     parser.add_argument('--data_path', type=str,  default = '/fs/cml-datasets/ImageNet/ILSVRC2012/val', required=False, metavar="FILE", help='dataset path')
     parser.add_argument('--model_card', type=str, required=False, metavar="FILE", help='model name on hugging face used in timm to create models' )
-    parser.add_argument('--shift_attack', type=bool, default=True, help='whether enable shift attack')
+    parser.add_argument('--shift_attack', action="store_true", required=False, help='whether enable shift attack')
     parser.add_argument('--shift_size', type=int, default = 15, required=False, metavar="FILE", help='shift size')
     parser.add_argument('--batch_size', type=int, default = 128, required=False, metavar="FILE", help='batch size')
-    parser.add_argument('--num_workers', type=int, default = 8, required=False, metavar="FILE", help='number of workers')
+    parser.add_argument('--num_workers', type=int, default = 16, required=False, metavar="FILE", help='number of workers')
     parser.add_argument ("--pretrained_path", type=str, default = None, required=False, metavar="FILE", help="pretrained model path")
     parser.add_argument("--affine", type=bool, default = False, required=False, metavar="FILE", help="whether enable affine attack")
     parser.add_argument("--breaking", action="store_true", required=False, help="break the loop if there are enough inconsistent predictions")
@@ -61,6 +61,8 @@ def parse_args():
     parser.add_argument("--flip", action="store_true", required=False, help="whether enable horizontal flip")
     # add arguments for all attacks
     parser.add_argument("--all_attack", action="store_true", required=False, help="whether enable all attacks")
+    parser.add_argument("--write_csv", action="store_true", required=False, help="whether write csv file")
+    parser.add_argument("--ckpt_num", type=int, default = 0, required=False, metavar="FILE", help='ckpt num')
     args, unparsed = parser.parse_known_args()
     return args
 
@@ -71,6 +73,14 @@ def main(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     data_path = args.data_path
     IN_default_mean = True
+    # if data path contains imagenet-o, use mean = [0.485, 0.456, 0.406] std = [0.229, 0.224, 0.225]
+    if "imagenet-o" in data_path:
+        mean = [0.485, 0.456, 0.406]
+        std =  [0.229, 0.224, 0.225]
+    else: 
+        mean = [0.5, 0.5, 0.5]
+        std = [0.5, 0.5, 0.5]
+
     
     if args.model == "vit":
         if args.model_card:
@@ -112,7 +122,12 @@ def main(args):
             # find the latest checkpoint in the folder args.pretrained_path/default
             ckpt_list = glob.glob(os.path.join(args.pretrained_path, "default", "*.pth"))
             ckpt_list.sort(key=os.path.getmtime)
-            args.pretrained_path = ckpt_list[-1]
+            if args.ckpt_num != 0:
+                for ckpt_path in ckpt_list:
+                    if str(args.ckpt_num) in ckpt_path:
+                        args.pretrained_path = ckpt_path
+            else:
+                args.pretrained_path = ckpt_list[-1]
             ckpt = torch.load(args.pretrained_path, map_location=device)
             model.load_state_dict(ckpt['model'])
         except:
@@ -132,14 +147,15 @@ def main(args):
             )
         ])
     else: 
+
         # Define the transforms to be applied to the input images
         transformation = transforms.Compose([
             transforms.Resize(size = 256, interpolation=InterpolationMode.BICUBIC),
             transforms.CenterCrop(224),
             transforms.ToTensor(),
             transforms.Normalize(
-                mean=IMAGENET_INCEPTION_MEAN,
-                std=IMAGENET_INCEPTION_STD
+                mean=mean,
+                std=std
             )
         ])
 
@@ -212,7 +228,6 @@ def main(args):
     total = 0
     consistent = 0
     outliers = []
-    normal = []
     start = time.time()
     # Disable gradient computation for evaluation
     with torch.no_grad():
@@ -262,6 +277,29 @@ def main(args):
                     if outliers.__len__() > 1:
                         print(f"got  {len(outliers)} outliers")
                         break
+            else:
+                shifts = tuple(np.random.randint(0,args.shift_size,2))
+                images1 = torch.roll(raw, shifts, (2,3))
+                # Compute the model output for the input batch
+                outputs = model(images)
+                outputs1 = model(images1)
+
+                # Compute the loss for the batch
+                loss = criterion(outputs, labels)
+
+                # Update the total loss
+                total_loss += loss.item() * images.size(0)
+
+                # Compute the predicted classes for the batch
+                _, predicted = torch.max(outputs.data, 1)
+                _, predicted1 = torch.max(outputs1.data, 1)
+
+                # Update the number of correct predictions
+                correct += (predicted == labels).sum().item()
+                consistent += (predicted == predicted1).sum().item()
+
+                # Update the total number of images
+                total += labels.size(0)            
 
                 # Compute the average loss and accuracy over all batches
         average_loss = total_loss / total
@@ -289,15 +327,22 @@ def main(args):
     if args.model_card:
         print("Using model card: ", args.model_card)
     # append accuracy and consistency to a csv file, if no such file exists, create one, in the first row include the column names; if the file exists, append the results to the end of the file
-    if not os.path.isfile('eval_results.csv'):
-        with open('eval_results.csv', 'w') as f:
-            writer = csv.writer(f)
-            writer.writerow(["model", "model_card", "accuracy", "consistency", "random_perspective", "random_affine", "crop", "random_erasing", "flip", "all_attack", "shift_attack", "distortion_scale", "degrees", "translate", "scale", "shear", "crop_size", "crop_padding", "average_loss", "time", "pretrained_path"])
-            writer.writerow([args.model, args.model_card,  accuracy, consistency, args.random_perspective, args.random_affine, args.crop, args.random_erasing, args.flip, args.all_attack, args.shift_attack, args.distortion_scale, args.degrees, args.translate, args.scale, args.shear, args.crop_size, args.crop_padding, average_loss, end_time, args.pretrained_path.split('/')[-3]])
-    else:
-        with open('eval_results.csv', 'a') as f:
-            writer = csv.writer(f)
-            writer.writerow([args.model, args.model_card, accuracy, consistency, args.random_perspective, args.random_affine, args.crop, args.random_erasing, args.flip, args.all_attack, args.shift_attack, args.distortion_scale, args.degrees, args.translate, args.scale, args.shear, args.crop_size, args.crop_padding, average_loss, end_time, args.pretrained_path.split('/')[-3]])
+    if args.write_csv:
+        if not os.path.isfile('/home/pding/scratch.cmsc663/eval_results.csv'):
+            with open('/home/pding/scratch.cmsc663/eval_results.csv', 'w') as f:
+                writer = csv.writer(f)
+                writer.writerow(["model", "pretrained_path", "model_card", "accuracy", "consistency", "random_perspective", "random_affine", "crop", "random_erasing", "flip", "all_attack", "shift_attack", "distortion_scale", "degrees", "translate", "scale", "shear", "crop_size", "crop_padding", "average_loss", "time"])
+                if args.pretrained_path:
+                    writer.writerow([args.model, args.pretrained_path.split('/')[-3], args.model_card,  accuracy, consistency, args.random_perspective, args.random_affine, args.crop, args.random_erasing, args.flip, args.all_attack, args.shift_attack, args.distortion_scale, args.degrees, args.translate, args.scale, args.shear, args.crop_size, args.crop_padding, average_loss, end_time ])
+                else:
+                    writer.writerow([args.model, "None", args.model_card, accuracy, consistency, args.random_perspective, args.random_affine, args.crop, args.random_erasing, args.flip, args.all_attack, args.shift_attack, args.distortion_scale, args.degrees, args.translate, args.scale, args.shear, args.crop_size, args.crop_padding, average_loss, end_time])
+        else:
+            with open('/home/pding/scratch.cmsc663/eval_results.csv', 'a') as f:
+                writer = csv.writer(f)
+                if args.pretrained_path:
+                    writer.writerow([args.model, args.pretrained_path.split('/')[-3], args.model_card, accuracy, consistency, args.random_perspective, args.random_affine, args.crop, args.random_erasing, args.flip, args.all_attack, args.shift_attack, args.distortion_scale, args.degrees, args.translate, args.scale, args.shear, args.crop_size, args.crop_padding, average_loss, end_time ])
+                else:
+                    writer.writerow([args.model, "None", args.model_card, accuracy, consistency, args.random_perspective, args.random_affine, args.crop, args.random_erasing, args.flip, args.all_attack, args.shift_attack, args.distortion_scale, args.degrees, args.translate, args.scale, args.shear, args.crop_size, args.crop_padding, average_loss, end_time])
 
 if __name__ == '__main__':
     args = parse_args()
