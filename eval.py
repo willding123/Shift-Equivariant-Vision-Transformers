@@ -1,6 +1,14 @@
+import os
+# set transformers and datasets cache to /home/dsoselia/scratch.furongh-prj/cache
+print("Setting transformers and datasets cache to /home/dsoselia/scratch.furongh-prj/cache")
+os.environ["TRANSFORMERS_CACHE"] = "/home/dsoselia/scratch.furongh-prj/cache"
+os.environ["HF_DATASETS_CACHE"] = "/home/dsoselia/scratch.furongh-prj/cache"
+os.environ["TORCH_HOME"] = "/home/dsoselia/scratch.furongh-prj/cache"
+
 #%% 
 import torch
 from torch import nn
+from torch.utils.data import DataLoader, Subset
 import torchvision.models as models
 from torchvision.datasets import ImageFolder
 from torchvision.transforms import transforms
@@ -28,11 +36,13 @@ import argparse
 import csv
 import glob
 import os
+import random
+
 
 ## TODO: 1. add affine attack, crop attack, and random perspective attack
 def parse_args():
     parser = argparse.ArgumentParser('Evaluation script', add_help=False)
-    parser.add_argument('--model', type=str, required=True, metavar="FILE", help='model name' )
+    parser.add_argument('--model', type=str, required=False, metavar="FILE", help='model name' )
     parser.add_argument('--data_path', type=str,  default = '/fs/cml-datasets/ImageNet/ILSVRC2012/val', required=False, metavar="FILE", help='dataset path')
     parser.add_argument('--model_card', type=str, required=False, metavar="FILE", help='model name on hugging face used in timm to create models' )
     parser.add_argument('--shift_attack', type=bool, default=True, help='whether enable shift attack')
@@ -60,66 +70,121 @@ def parse_args():
     # add argumennts for horizontal flip
     parser.add_argument("--flip", action="store_true", required=False, help="whether enable horizontal flip")
     # add arguments for all attacks
+    parser.add_argument("--grid_search", action="store_true", required=False, help="whether enable grid search")
     parser.add_argument("--all_attack", action="store_true", required=False, help="whether enable all attacks")
     args, unparsed = parser.parse_known_args()
     return args
 
+
+
+def evaluate(model, dataloader, shift, device):
+    """Evaluate the accuracy of the given model on the given dataset."""
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for images, labels in dataloader:
+            images = shift_image(images, shift)
+            images = images.to(device)
+            labels = labels.to(device)
+            outputs = model(images)
+            _, predicted = torch.max(outputs, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+    accuracy = correct / total
+    return accuracy
+
+
+
+def shift_image(image, shift):
+    """Shift an image by the given amount."""
+    x_shift, y_shift = shift
+    image = torch.roll(image, shifts=(x_shift, y_shift), dims=(2, 3))
+    return image
+
+def worst_shift(model, dataset, device, max_x_shift=15, max_y_shift=15):
+    n_sampels = 36
+    batch_size = 36
+    subset_indices = random.sample(range(len(dataset)), n_sampels)
+    subset = Subset(dataset, subset_indices)
+    dataloader = DataLoader(subset, batch_size=batch_size, shuffle=True)
+
+    min_accuracy = float('inf')
+    min_shift = None
+
+    for x_shift in tqdm(range(-max_x_shift, max_x_shift + 1)):
+        for y_shift in range(-max_y_shift, max_y_shift + 1):
+            shift = (x_shift, y_shift)
+            accuracy = evaluate(model, dataloader, shift, device)
+            if accuracy < min_accuracy:
+                min_accuracy = accuracy
+                min_shift = shift
+
+    return min_shift, min_accuracy
+
 def main(args):
+        
+    # args.pretrained_path = "/scratch/zt1/project/furongh-prj/shared/vit_s_1kscratch/"
+    # args.model = "vit"
+    # args.model_card = "timm/vit_small_patch16_224.augreg_in1k"
+    args.data_path = "/scratch/zt1/project/furongh-prj/shared/Imagenet/val/"
     batch_size = args.batch_size
     if args.shift_attack:
         shift_size = args.shift_size
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     data_path = args.data_path
     IN_default_mean = True
-    
-    if args.model == "vit":
-        if args.model_card:
-            model = timm.create_model(args.model_card, pretrained=True)
-        else:
-            model = timm.create_model("hf_hub:timm/vit_base_patch16_224.augreg_in21k_ft_in1k", pretrained=True)
-        IN_default_mean = False
-    elif args.model == "vit_relpos":
-        if args.model_card:
-            model = timm.create_model(args.model_card, pretrained=True)
-        else:
-            model = timm.create_model("hf_hub:timm/vit_relpos_small_patch16_224.sw_in1k", pretrained=True)
-        IN_default_mean = False
-    elif args.model == "polyvit":
-        if args.model_card:
-            model = PolyViT(args.model_card, pretrained=True)
-        else:
-            model = PolyViT("hf_hub:timm/vit_base_patch16_224.augreg_in21k_ft_in1k", pretrained=True)
-        IN_default_mean = False
-    elif args.model == "twins":
-        if args.model_card:
-            model = timm.create_model(args.model_card, pretrained=True)
-        else:
-            model = timm.create_model("twins_svt_small", pretrained=True)
-    elif args.model == "polytwins":
-        if args.model_card:
-            model = PolyTwins(args.model_card, pretrained=True)
+    if not args.pretrained_path:
+        if args.model == "vit":
+            if args.model_card:
+                model = timm.create_model(args.model_card, pretrained=True)
+            else:
+                model = timm.create_model("hf_hub:timm/vit_base_patch16_224.augreg_in21k_ft_in1k", pretrained=True)
+            IN_default_mean = False
+        elif args.model == "vit_relpos":
+            if args.model_card:
+                model = timm.create_model(args.model_card, pretrained=True)
+            else:
+                model = timm.create_model("hf_hub:timm/vit_relpos_small_patch16_224.sw_in1k", pretrained=True)
+            IN_default_mean = False
+        elif args.model == "polyvit":
+            if args.model_card:
+                model = PolyViT(args.model_card, pretrained=True)
+            else:
+                model = PolyViT("hf_hub:timm/vit_base_patch16_224.augreg_in21k_ft_in1k", pretrained=True)
+            IN_default_mean = False
+        elif args.model == "twins":
+            if args.model_card:
+                model = timm.create_model(args.model_card, pretrained=True)
+            else:
+                model = timm.create_model("twins_svt_small", pretrained=True)
+        elif args.model == "polytwins":
+            if args.model_card:
+                model = PolyTwins(args.model_card, pretrained=True)
+            else: 
+                model = PolyTwins("twins_svt_small", pretrained=True)
         else: 
-            model = PolyTwins("twins_svt_small", pretrained=True)
-    else: 
-        raise NotImplementedError
+            raise NotImplementedError
     
-    if args.pretrained_path:
+    elif args.pretrained_path:
         config  = _C.clone()
+        ckpt_list = glob.glob(os.path.join(args.pretrained_path, "default", "*.pth"))
+        ckpt_list.sort(key=os.path.getmtime)
+        args.pretrained_path = ckpt_list[-1]
+        ckpt = torch.load(args.pretrained_path, map_location=device)
+        
+            
         config.MODEL.TYPE = args.model
         config.MODEL.CARD = args.model_card
         try: 
             model = build_model(config)
             # find the latest checkpoint in the folder args.pretrained_path/default
-            ckpt_list = glob.glob(os.path.join(args.pretrained_path, "default", "*.pth"))
-            ckpt_list.sort(key=os.path.getmtime)
-            args.pretrained_path = ckpt_list[-1]
-            ckpt = torch.load(args.pretrained_path, map_location=device)
             model.load_state_dict(ckpt['model'])
         except:
             raise NotImplementedError
+    else:
+        raise NotImplementedError
 
     model = model.to(device)
-
     if IN_default_mean:
         # Define the transforms to be applied to the input images
         transformation = transforms.Compose([
@@ -142,56 +207,61 @@ def main(args):
                 std=IMAGENET_INCEPTION_STD
             )
         ])
+        
 
-    # if random perspective attack is enabled, add the random perspective transformation
-    if args.random_perspective:
-        transformation = transforms.Compose([
-        transformation,
-        RandomPerspective(distortion_scale = args.distortion_scale)
-        ])
-    # if random affine attack is enabled, add the random affine transformation
-    if args.random_affine:
-        transformation = transforms.Compose([
-        transformation,
-        RandomAffine(degrees = args.degrees, translate = args.translate, scale = args.scale, shear = args.shear)
-        ])
-    # if crop attack is enabled, add the crop transformation
-    if args.crop:
-        transformation = transforms.Compose([
-        transformation,
-        RandomCrop(size = args.crop_size, padding = args.crop_padding)
-        ])
-    # if random erasing attack is enabled, add the random erasing transformation
-    if args.random_erasing:
-        transformation = transforms.Compose([
-        transformation,
-        RandomErasing()
-        ])
-    # if horizontal flip attack is enabled, add the horizontal flip transformation
-    if args.flip:
-        transformation = transforms.Compose([
-        transformation,
-        RandomHorizontalFlip()
-        ])
-    # if all three attacks are enabled, add the random perspective, random affine and crop transformations
-    if args.all_attack:
-        transformation = transforms.Compose([
-        transformation,
-        RandomPerspective(distortion_scale = args.distortion_scale),
-        RandomAffine(degrees = args.degrees, translate = args.translate, scale = args.scale, shear = args.shear),
-        RandomCrop(size = args.crop_size, padding = args.crop_padding),
-        RandomErasing(),
-        RandomHorizontalFlip()
-        ])
+    # # if random perspective attack is enabled, add the random perspective transformation
+    # if args.random_perspective:
+    #     transformation = transforms.Compose([
+    #     transformation,
+    #     RandomPerspective(distortion_scale = args.distortion_scale)
+    #     ])
+    # # if random affine attack is enabled, add the random affine transformation
+    # if args.random_affine:
+    #     transformation = transforms.Compose([
+    #     transformation,
+    #     RandomAffine(degrees = args.degrees, translate = args.translate, scale = args.scale, shear = args.shear)
+    #     ])
+    # # if crop attack is enabled, add the crop transformation
+    # if args.crop:
+    #     transformation = transforms.Compose([
+    #     transformation,
+    #     RandomCrop(size = args.crop_size, padding = args.crop_padding)
+    #     ])
+    # # if random erasing attack is enabled, add the random erasing transformation
+    # if args.random_erasing:
+    #     transformation = transforms.Compose([
+    #     transformation,
+    #     RandomErasing()
+    #     ])
+    # # if horizontal flip attack is enabled, add the horizontal flip transformation
+    # if args.flip:
+    #     transformation = transforms.Compose([
+    #     transformation,
+    #     RandomHorizontalFlip()
+    #     ])
+    # # if all three attacks are enabled, add the random perspective, random affine and crop transformations
+    # if args.all_attack:
+    #     transformation = transforms.Compose([
+    #     transformation,
+    #     RandomPerspective(distortion_scale = args.distortion_scale),
+    #     RandomAffine(degrees = args.degrees, translate = args.translate, scale = args.scale, shear = args.shear),
+    #     RandomCrop(size = args.crop_size, padding = args.crop_padding),
+    #     RandomErasing(),
+    #     RandomHorizontalFlip()
+    #     ])
         
 
     # Load the ImageNet-O dataset using the ImageFolder class
     dataset = ImageFolder(root=data_path, transform=transformation)
 
+
+
+
     # Define the batch size for the data loader
 
     # Create the data loader for dataset
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=args.num_workers)
+    
 
     # Load the pre-trained model
     # Set the model to evaluate mode
@@ -202,7 +272,42 @@ def main(args):
 
     # Move the model to the device
     model.to(device)
+    
+    if  args.grid_search:
+        start= time.time()
+        worst_shift_val, worst_shift_acc = worst_shift(model, dataset, device, max_x_shift=3, max_y_shift=3)
+        print("Worst shift:", worst_shift_val)
+        print("Worst shift accuracy:", worst_shift_acc)
 
+        correct = 0
+        total = 0
+        with torch.no_grad():
+            for images, labels in dataloader:
+                images = shift_image(images, worst_shift_val)
+                images = images.to(device)
+                labels = labels.to(device)
+                outputs = model(images)
+                _, predicted = torch.max(outputs, 1)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+        accuracy = correct / total
+        print("Worst shift accuracy on the whole dataset:", accuracy)
+        consistency = None
+        average_loss = None
+        end_time = time.time() - start
+        if not os.path.isfile('eval_grid_results.csv'):
+            with open('eval_grid_results.csv', 'w') as f:
+                writer = csv.writer(f)
+                writer.writerow(["model", "model_card", "accuracy", "consistency", "random_perspective", "random_affine", "crop", "random_erasing", "flip", "all_attack", "shift_attack", "distortion_scale", "degrees", "translate", "scale", "shear", "crop_size", "crop_padding", "average_loss", "time", "pretrained_path"])
+
+                
+                writer.writerow([args.model, args.model_card,  accuracy, consistency, args.random_perspective, args.random_affine, args.crop, args.random_erasing, args.flip, args.all_attack, args.shift_attack, args.distortion_scale, args.degrees, args.translate, args.scale, args.shear, args.crop_size, args.crop_padding, average_loss, end_time, args.pretrained_path.split('/')[-3]])
+        else:
+            with open('eval_grid_results.csv', 'a') as f:
+                writer = csv.writer(f)
+                writer.writerow([args.model, args.model_card, accuracy, consistency, args.random_perspective, args.random_affine, args.crop, args.random_erasing, args.flip, args.all_attack, args.shift_attack, args.distortion_scale, args.degrees, args.translate, args.scale, args.shear, args.crop_size, args.crop_padding, average_loss, end_time, args.pretrained_path.split('/')[-3]])
+        return
+    
     # Define the criterion (loss function) to use for evaluation
     criterion = torch.nn.CrossEntropyLoss()
 
@@ -288,6 +393,7 @@ def main(args):
     print('Average Loss: {:.4f}, Accuracy: {:.4f}, Consistency {:.4f}'.format(average_loss, accuracy, consistency))
     if args.model_card:
         print("Using model card: ", args.model_card)
+    
     # append accuracy and consistency to a csv file, if no such file exists, create one, in the first row include the column names; if the file exists, append the results to the end of the file
     if not os.path.isfile('eval_results.csv'):
         with open('eval_results.csv', 'w') as f:
