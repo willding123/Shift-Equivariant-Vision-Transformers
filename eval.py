@@ -71,6 +71,7 @@ def parse_args():
     parser.add_argument("--flip", action="store_true", required=False, help="whether enable horizontal flip")
     # add arguments for all attacks
     parser.add_argument("--grid_search", action="store_true", required=False, help="whether enable grid search")
+    parser.add_argument("--worst_per_batch", action="store_true", required=False, help="whether enable grid search")
     parser.add_argument("--all_attack", action="store_true", required=False, help="whether enable all attacks")
     args, unparsed = parser.parse_known_args()
     return args
@@ -120,6 +121,29 @@ def worst_shift(model, dataset, device, max_x_shift=15, max_y_shift=15):
                 min_shift = shift
 
     return min_shift, min_accuracy
+
+
+def evaluate_shift_batch(images, labels, device, model, shift_size):
+    images = shift_image(images, shift_size)
+    images = images.to(device)
+    labels = labels.to(device)
+    outputs = model(images)
+    _, predicted = torch.max(outputs, 1)
+    num_samples = labels.size(0)
+    correct = (predicted == labels).sum().item()
+    return correct, num_samples
+
+def worst_shift_for_batch(images, labels, device, model, max_x_shift=15, max_y_shift=15):
+    min_correct = float('inf')
+
+    for x_shift in range(-max_x_shift, max_x_shift + 1):
+        for y_shift in range(-max_y_shift, max_y_shift + 1):
+            shift = (x_shift, y_shift)
+            correct, num_samples = evaluate_shift_batch(images, labels, device, model, shift)
+            if correct < min_correct:
+                min_correct = correct
+
+    return min_correct, num_samples
 
 def main(args):
         
@@ -272,40 +296,45 @@ def main(args):
 
     # Move the model to the device
     model.to(device)
-    
+    max_shift_x = 15
+    max_shift_y = 15
     if  args.grid_search:
         start= time.time()
-        worst_shift_val, worst_shift_acc = worst_shift(model, dataset, device, max_x_shift=3, max_y_shift=3)
+        worst_shift_val, worst_shift_acc = worst_shift(model, dataset, device, max_x_shift=max_shift_x, max_y_shift=max_shift_y)
         print("Worst shift:", worst_shift_val)
         print("Worst shift accuracy:", worst_shift_acc)
 
         correct = 0
         total = 0
         with torch.no_grad():
-            for images, labels in dataloader:
-                images = shift_image(images, worst_shift_val)
-                images = images.to(device)
-                labels = labels.to(device)
-                outputs = model(images)
-                _, predicted = torch.max(outputs, 1)
-                total += labels.size(0)
-                correct += (predicted == labels).sum().item()
+            for images, labels in tqdm(dataloader, total=len(dataloader)):
+                if args.worst_per_batch:
+                    batch_correct, batch_total = worst_shift_for_batch(images, labels, device, model, max_x_shift=max_shift_x, max_y_shift=max_shift_y)
+                    
+                else:
+                    batch_correct, batch_total = evaluate_shift_batch(images, labels, device, model, worst_shift_val)
+                total += batch_total
+                correct += batch_correct
         accuracy = correct / total
         print("Worst shift accuracy on the whole dataset:", accuracy)
         consistency = None
         average_loss = None
         end_time = time.time() - start
-        if not os.path.isfile('eval_grid_results.csv'):
-            with open('eval_grid_results.csv', 'w') as f:
+        if args.worst_per_batch:
+            log_file = "eval_grid_results_worst_per_batch.csv"
+        else:
+            log_file = "eval_grid_results.csv"
+        if not os.path.isfile(log_file):
+            with open(log_file, 'w') as f:
                 writer = csv.writer(f)
-                writer.writerow(["model", "model_card", "accuracy", "consistency", "random_perspective", "random_affine", "crop", "random_erasing", "flip", "all_attack", "shift_attack", "distortion_scale", "degrees", "translate", "scale", "shear", "crop_size", "crop_padding", "average_loss", "time", "pretrained_path"])
+                writer.writerow(["model", "model_card", "accuracy", "consistency", "random_perspective", "random_affine", "crop", "random_erasing", "flip", "all_attack", "shift_attack", "distortion_scale", "degrees", "translate", "scale", "shear", "crop_size", "crop_padding", "average_loss", "time", "pretrained_path", "max_shift_x", "max_shift_y", "worst_shift_x", "worst_shift_y"])
 
                 
-                writer.writerow([args.model, args.model_card,  accuracy, consistency, args.random_perspective, args.random_affine, args.crop, args.random_erasing, args.flip, args.all_attack, args.shift_attack, args.distortion_scale, args.degrees, args.translate, args.scale, args.shear, args.crop_size, args.crop_padding, average_loss, end_time, args.pretrained_path.split('/')[-3]])
+                writer.writerow([args.model, args.model_card,  accuracy, consistency, args.random_perspective, args.random_affine, args.crop, args.random_erasing, args.flip, args.all_attack, args.shift_attack, args.distortion_scale, args.degrees, args.translate, args.scale, args.shear, args.crop_size, args.crop_padding, average_loss, end_time, args.pretrained_path.split('/')[-3], max_shift_x, max_shift_y, worst_shift_val[0], worst_shift_val[1]])
         else:
-            with open('eval_grid_results.csv', 'a') as f:
+            with open(log_file, 'a') as f:
                 writer = csv.writer(f)
-                writer.writerow([args.model, args.model_card, accuracy, consistency, args.random_perspective, args.random_affine, args.crop, args.random_erasing, args.flip, args.all_attack, args.shift_attack, args.distortion_scale, args.degrees, args.translate, args.scale, args.shear, args.crop_size, args.crop_padding, average_loss, end_time, args.pretrained_path.split('/')[-3]])
+                writer.writerow([args.model, args.model_card, accuracy, consistency, args.random_perspective, args.random_affine, args.crop, args.random_erasing, args.flip, args.all_attack, args.shift_attack, args.distortion_scale, args.degrees, args.translate, args.scale, args.shear, args.crop_size, args.crop_padding, average_loss, end_time, args.pretrained_path.split('/')[-3], max_shift_x, max_shift_y, worst_shift_val[0], worst_shift_val[1]])
         return
     
     # Define the criterion (loss function) to use for evaluation
