@@ -73,6 +73,7 @@ def parse_args():
     parser.add_argument("--grid_search", action="store_true", required=False, help="whether enable grid search")
     parser.add_argument("--worst_per_batch", action="store_true", required=False, help="whether enable grid search")
     parser.add_argument("--all_attack", action="store_true", required=False, help="whether enable all attacks")
+    parser.add_argument("--worst_per_patch_percentage", type=int, default = 10, required=False, metavar="FILE", help='what percentage of patches to use for worst per patch attack')
     args, unparsed = parser.parse_known_args()
     return args
 
@@ -234,52 +235,56 @@ def main(args):
         ])
         
 
-    # # if random perspective attack is enabled, add the random perspective transformation
-    # if args.random_perspective:
-    #     transformation = transforms.Compose([
-    #     transformation,
-    #     RandomPerspective(distortion_scale = args.distortion_scale)
-    #     ])
-    # # if random affine attack is enabled, add the random affine transformation
-    # if args.random_affine:
-    #     transformation = transforms.Compose([
-    #     transformation,
-    #     RandomAffine(degrees = args.degrees, translate = args.translate, scale = args.scale, shear = args.shear)
-    #     ])
-    # # if crop attack is enabled, add the crop transformation
-    # if args.crop:
-    #     transformation = transforms.Compose([
-    #     transformation,
-    #     RandomCrop(size = args.crop_size, padding = args.crop_padding)
-    #     ])
-    # # if random erasing attack is enabled, add the random erasing transformation
-    # if args.random_erasing:
-    #     transformation = transforms.Compose([
-    #     transformation,
-    #     RandomErasing()
-    #     ])
-    # # if horizontal flip attack is enabled, add the horizontal flip transformation
-    # if args.flip:
-    #     transformation = transforms.Compose([
-    #     transformation,
-    #     RandomHorizontalFlip()
-    #     ])
-    # # if all three attacks are enabled, add the random perspective, random affine and crop transformations
-    # if args.all_attack:
-    #     transformation = transforms.Compose([
-    #     transformation,
-    #     RandomPerspective(distortion_scale = args.distortion_scale),
-    #     RandomAffine(degrees = args.degrees, translate = args.translate, scale = args.scale, shear = args.shear),
-    #     RandomCrop(size = args.crop_size, padding = args.crop_padding),
-    #     RandomErasing(),
-    #     RandomHorizontalFlip()
-    #     ])
+    # if random perspective attack is enabled, add the random perspective transformation
+    if args.random_perspective:
+        transformation = transforms.Compose([
+        transformation,
+        RandomPerspective(distortion_scale = args.distortion_scale)
+        ])
+    # if random affine attack is enabled, add the random affine transformation
+    if args.random_affine:
+        transformation = transforms.Compose([
+        transformation,
+        RandomAffine(degrees = args.degrees, translate = args.translate, scale = args.scale, shear = args.shear)
+        ])
+    # if crop attack is enabled, add the crop transformation
+    if args.crop:
+        transformation = transforms.Compose([
+        transformation,
+        RandomCrop(size = args.crop_size, padding = args.crop_padding)
+        ])
+    # if random erasing attack is enabled, add the random erasing transformation
+    if args.random_erasing:
+        transformation = transforms.Compose([
+        transformation,
+        RandomErasing()
+        ])
+    # if horizontal flip attack is enabled, add the horizontal flip transformation
+    if args.flip:
+        transformation = transforms.Compose([
+        transformation,
+        RandomHorizontalFlip()
+        ])
+    # if all three attacks are enabled, add the random perspective, random affine and crop transformations
+    if args.all_attack:
+        transformation = transforms.Compose([
+        transformation,
+        RandomPerspective(distortion_scale = args.distortion_scale),
+        RandomAffine(degrees = args.degrees, translate = args.translate, scale = args.scale, shear = args.shear),
+        RandomCrop(size = args.crop_size, padding = args.crop_padding),
+        RandomErasing(),
+        RandomHorizontalFlip()
+        ])
         
 
     # Load the ImageNet-O dataset using the ImageFolder class
     dataset = ImageFolder(root=data_path, transform=transformation)
 
-
+    if args.worst_per_batch:
+        subset_indices = random.sample(range(len(dataset)), args.worst_per_patch_percentage *len(dataset) // 100)
+        dataset = Subset(dataset, subset_indices)
+        print("Number of images in the subset:", len(dataset))
+        
 
 
     # Define the batch size for the data loader
@@ -369,9 +374,9 @@ def main(args):
         average_loss = None
         end_time = time.time() - start
         if args.worst_per_batch:
-            log_file = "eval_grid_results_worst_per_batch_2.csv"
+            log_file = "eval_grid_results_worst_per_batch_.csv"
         else:
-            log_file = "eval_grid_results_2.csv"
+            log_file = "eval_grid_results_.csv"
         if not os.path.isfile(log_file):
             with open(log_file, 'w') as f:
                 writer = csv.writer(f)
