@@ -194,6 +194,7 @@ def main(args):
         ckpt_list = glob.glob(os.path.join(args.pretrained_path, "default", "*.pth"))
         ckpt_list.sort(key=os.path.getmtime)
         args.pretrained_path = ckpt_list[-1]
+        print("Loading model from: ", args.pretrained_path)
         ckpt = torch.load(args.pretrained_path, map_location=device)
         
             
@@ -300,9 +301,12 @@ def main(args):
     max_shift_y = 15
     if  args.grid_search:
         start= time.time()
-        worst_shift_val, worst_shift_acc = worst_shift(model, dataset, device, max_x_shift=max_shift_x, max_y_shift=max_shift_y)
-        print("Worst shift:", worst_shift_val)
-        print("Worst shift accuracy:", worst_shift_acc)
+        if not args.worst_per_batch:
+            worst_shift_val, worst_shift_acc = worst_shift(model, dataset, device, max_x_shift=max_shift_x, max_y_shift=max_shift_y)
+            print("Worst shift:", worst_shift_val)
+            print("Worst shift accuracy:", worst_shift_acc)
+        else:
+            worst_shift_val = (None, None)
 
         correct = 0
         total = 0
@@ -310,20 +314,64 @@ def main(args):
             for images, labels in tqdm(dataloader, total=len(dataloader)):
                 if args.worst_per_batch:
                     batch_correct, batch_total = worst_shift_for_batch(images, labels, device, model, max_x_shift=max_shift_x, max_y_shift=max_shift_y)
-                    
                 else:
                     batch_correct, batch_total = evaluate_shift_batch(images, labels, device, model, worst_shift_val)
                 total += batch_total
                 correct += batch_correct
         accuracy = correct / total
+        
+        #alternative implemementation for worst_per_batch
+        # if args.worst_per_batch:
+                
+        #     per_batch_corrects = []
+        #     per_batch_totals = []
+        #     for shift_x in range(-max_shift_x, max_shift_x + 1):
+        #         for shift_y in range(-max_shift_y, max_shift_y + 1):
+        #             per_batch_correct = []
+        #             per_batch_total = []
+        #             shift = (shift_x, shift_y)
+        #             correct = 0
+        #             total = 0
+        #             with torch.no_grad():
+        #                 for images, labels in tqdm(dataloader, total=len(dataloader)):
+        #                     batch_correct, batch_total = evaluate_shift_batch(images, labels, device, model, shift)
+        #                     total += batch_total
+        #                     correct += batch_correct
+        #                     per_batch_correct.append(batch_correct)
+        #                     per_batch_total.append(batch_total)
+        #             per_batch_corrects.append(per_batch_correct)
+        #             per_batch_totals.append(per_batch_total)
+
+        #     # check that each per_batch_correct is equal in length
+        #     assert len(set([len(x) for x in per_batch_corrects])) == 1
+        #     assert len(set([len(x) for x in per_batch_totals])) == 1
+
+        #     # get the lowest correct value for each batch
+        #     per_batch_corrects = np.array(per_batch_corrects)
+        #     per_batch_totals = np.array(per_batch_totals)
+        #     per_batch_corrects = np.min(per_batch_corrects, axis=0)
+        #     per_batch_totals = np.min(per_batch_totals, axis=0)
+
+        #     # get the accuracy for each batch
+        #     correct = np.sum(per_batch_corrects)
+        #     total = np.sum(per_batch_totals)
+            
+            
+        #     accuracy = correct / total
+
+                
+                
+        
+        
+        
         print("Worst shift accuracy on the whole dataset:", accuracy)
         consistency = None
         average_loss = None
         end_time = time.time() - start
         if args.worst_per_batch:
-            log_file = "eval_grid_results_worst_per_batch.csv"
+            log_file = "eval_grid_results_worst_per_batch_2.csv"
         else:
-            log_file = "eval_grid_results.csv"
+            log_file = "eval_grid_results_2.csv"
         if not os.path.isfile(log_file):
             with open(log_file, 'w') as f:
                 writer = csv.writer(f)
@@ -425,7 +473,7 @@ def main(args):
     
     # append accuracy and consistency to a csv file, if no such file exists, create one, in the first row include the column names; if the file exists, append the results to the end of the file
     if not os.path.isfile('eval_results.csv'):
-        with open('eval_results.csv', 'w') as f:
+        with open('eval_results_1.csv', 'w') as f:
             writer = csv.writer(f)
             writer.writerow(["model", "model_card", "accuracy", "consistency", "random_perspective", "random_affine", "crop", "random_erasing", "flip", "all_attack", "shift_attack", "distortion_scale", "degrees", "translate", "scale", "shear", "crop_size", "crop_padding", "average_loss", "time", "pretrained_path"])
             writer.writerow([args.model, args.model_card,  accuracy, consistency, args.random_perspective, args.random_affine, args.crop, args.random_erasing, args.flip, args.all_attack, args.shift_attack, args.distortion_scale, args.degrees, args.translate, args.scale, args.shear, args.crop_size, args.crop_padding, average_loss, end_time, args.pretrained_path.split('/')[-3]])
