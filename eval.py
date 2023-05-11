@@ -1,6 +1,14 @@
+import os
+# set transformers and datasets cache to /home/dsoselia/scratch.furongh-prj/cache
+print("Setting transformers and datasets cache to /home/dsoselia/scratch.furongh-prj/cache")
+os.environ["TRANSFORMERS_CACHE"] = "/home/dsoselia/scratch.furongh-prj/cache"
+os.environ["HF_DATASETS_CACHE"] = "/home/dsoselia/scratch.furongh-prj/cache"
+os.environ["TORCH_HOME"] = "/home/dsoselia/scratch.furongh-prj/cache"
+
 #%% 
 import torch
 from torch import nn
+from torch.utils.data import DataLoader, Subset
 import torchvision.models as models
 from torchvision.datasets import ImageFolder
 from torchvision.transforms import transforms
@@ -28,11 +36,13 @@ import argparse
 import csv
 import glob
 import os
+import random
+
 
 ## TODO: 1. add affine attack, crop attack, and random perspective attack
 def parse_args():
     parser = argparse.ArgumentParser('Evaluation script', add_help=False)
-    parser.add_argument('--model', type=str, required=True, metavar="FILE", help='model name' )
+    parser.add_argument('--model', type=str, required=False, metavar="FILE", help='model name' )
     parser.add_argument('--data_path', type=str,  default = '/fs/cml-datasets/ImageNet/ILSVRC2012/val', required=False, metavar="FILE", help='dataset path')
     parser.add_argument('--model_card', type=str, required=False, metavar="FILE", help='model name on hugging face used in timm to create models' )
     parser.add_argument('--shift_attack', action="store_true", required=False, help='whether enable shift attack')
@@ -60,13 +70,90 @@ def parse_args():
     # add argumennts for horizontal flip
     parser.add_argument("--flip", action="store_true", required=False, help="whether enable horizontal flip")
     # add arguments for all attacks
+    parser.add_argument("--grid_search", action="store_true", required=False, help="whether enable grid search")
+    parser.add_argument("--worst_per_batch", action="store_true", required=False, help="whether enable grid search")
     parser.add_argument("--all_attack", action="store_true", required=False, help="whether enable all attacks")
+    parser.add_argument("--worst_per_patch_percentage", type=int, default = 10, required=False, metavar="FILE", help='what percentage of patches to use for worst per patch attack')
     parser.add_argument("--write_csv", action="store_true", required=False, help="whether write csv file")
     parser.add_argument("--ckpt_num", type=int, default = 0, required=False, metavar="FILE", help='ckpt num')
     args, unparsed = parser.parse_known_args()
     return args
 
+
+
+def evaluate(model, dataloader, shift, device):
+    """Evaluate the accuracy of the given model on the given dataset."""
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for images, labels in dataloader:
+            images = shift_image(images, shift)
+            images = images.to(device)
+            labels = labels.to(device)
+            outputs = model(images)
+            _, predicted = torch.max(outputs, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+    accuracy = correct / total
+    return accuracy
+
+
+
+def shift_image(image, shift):
+    """Shift an image by the given amount."""
+    x_shift, y_shift = shift
+    image = torch.roll(image, shifts=(x_shift, y_shift), dims=(2, 3))
+    return image
+
+def worst_shift(model, dataset, device, max_x_shift=15, max_y_shift=15):
+    n_sampels = 36
+    batch_size = 36
+    subset_indices = random.sample(range(len(dataset)), n_sampels)
+    subset = Subset(dataset, subset_indices)
+    dataloader = DataLoader(subset, batch_size=batch_size, shuffle=True)
+
+    min_accuracy = float('inf')
+    min_shift = None
+
+    for x_shift in tqdm(range(-max_x_shift, max_x_shift + 1)):
+        for y_shift in range(-max_y_shift, max_y_shift + 1):
+            shift = (x_shift, y_shift)
+            accuracy = evaluate(model, dataloader, shift, device)
+            if accuracy < min_accuracy:
+                min_accuracy = accuracy
+                min_shift = shift
+
+    return min_shift, min_accuracy
+
+
+def evaluate_shift_batch(images, labels, device, model, shift_size):
+    images = shift_image(images, shift_size)
+    images = images.to(device)
+    labels = labels.to(device)
+    outputs = model(images)
+    _, predicted = torch.max(outputs, 1)
+    num_samples = labels.size(0)
+    correct = (predicted == labels).sum().item()
+    return correct, num_samples
+
+def worst_shift_for_batch(images, labels, device, model, max_x_shift=15, max_y_shift=15):
+    min_correct = float('inf')
+
+    for x_shift in range(-max_x_shift, max_x_shift + 1):
+        for y_shift in range(-max_y_shift, max_y_shift + 1):
+            shift = (x_shift, y_shift)
+            correct, num_samples = evaluate_shift_batch(images, labels, device, model, shift)
+            if correct < min_correct:
+                min_correct = correct
+
+    return min_correct, num_samples
+
 def main(args):
+        
+    # args.pretrained_path = "/scratch/zt1/project/furongh-prj/shared/vit_s_1kscratch/"
+    # args.model = "vit"
+    # args.model_card = "timm/vit_small_patch16_224.augreg_in1k"
+    args.data_path = "/scratch/zt1/project/furongh-prj/shared/Imagenet/val/"
     batch_size = args.batch_size
     if args.shift_attack:
         shift_size = args.shift_size
@@ -81,40 +168,45 @@ def main(args):
         mean = [0.5, 0.5, 0.5]
         std = [0.5, 0.5, 0.5]
 
+    if not args.pretrained_path:
+        if args.model == "vit":
+            if args.model_card:
+                model = timm.create_model(args.model_card, pretrained=True)
+            else:
+                model = timm.create_model("hf_hub:timm/vit_base_patch16_224.augreg_in21k_ft_in1k", pretrained=True)
+            IN_default_mean = False
+        elif args.model == "vit_relpos":
+            if args.model_card:
+                model = timm.create_model(args.model_card, pretrained=True)
+            else:
+                model = timm.create_model("hf_hub:timm/vit_relpos_small_patch16_224.sw_in1k", pretrained=True)
+            IN_default_mean = False
+        elif args.model == "polyvit":
+            if args.model_card:
+                model = PolyViT(args.model_card, pretrained=True)
+            else:
+                model = PolyViT("hf_hub:timm/vit_base_patch16_224.augreg_in21k_ft_in1k", pretrained=True)
+            IN_default_mean = False
+        elif args.model == "twins":
+            if args.model_card:
+                model = timm.create_model(args.model_card, pretrained=True)
+            else:
+                model = timm.create_model("twins_svt_small", pretrained=True)
+        elif args.model == "polytwins":
+            if args.model_card:
+                model = PolyTwins(args.model_card, pretrained=True)
+            else: 
+                raise NotImplementedError
     
-    if args.model == "vit":
-        if args.model_card:
-            model = timm.create_model(args.model_card, pretrained=True)
-        else:
-            model = timm.create_model("hf_hub:timm/vit_base_patch16_224.augreg_in21k_ft_in1k", pretrained=True)
-        IN_default_mean = False
-    elif args.model == "vit_relpos":
-        if args.model_card:
-            model = timm.create_model(args.model_card, pretrained=True)
-        else:
-            model = timm.create_model("hf_hub:timm/vit_relpos_small_patch16_224.sw_in1k", pretrained=True)
-        IN_default_mean = False
-    elif args.model == "polyvit":
-        if args.model_card:
-            model = PolyViT(args.model_card, pretrained=True)
-        else:
-            model = PolyViT("hf_hub:timm/vit_base_patch16_224.augreg_in21k_ft_in1k", pretrained=True)
-        IN_default_mean = False
-    elif args.model == "twins":
-        if args.model_card:
-            model = timm.create_model(args.model_card, pretrained=True)
-        else:
-            model = timm.create_model("twins_svt_small", pretrained=True)
-    elif args.model == "polytwins":
-        if args.model_card:
-            model = PolyTwins(args.model_card, pretrained=True)
-        else: 
-            model = PolyTwins("twins_svt_small", pretrained=True)
-    else: 
-        raise NotImplementedError
-    
-    if args.pretrained_path:
+    elif args.pretrained_path:
         config  = _C.clone()
+        ckpt_list = glob.glob(os.path.join(args.pretrained_path, "default", "*.pth"))
+        ckpt_list.sort(key=os.path.getmtime)
+        args.pretrained_path = ckpt_list[-1]
+        print("Loading model from: ", args.pretrained_path)
+        ckpt = torch.load(args.pretrained_path, map_location=device)
+        
+            
         config.MODEL.TYPE = args.model
         config.MODEL.CARD = args.model_card
         try: 
@@ -132,9 +224,10 @@ def main(args):
             model.load_state_dict(ckpt['model'])
         except:
             raise NotImplementedError
+    else:
+        raise NotImplementedError
 
     model = model.to(device)
-
     if IN_default_mean:
         # Define the transforms to be applied to the input images
         transformation = transforms.Compose([
@@ -158,6 +251,7 @@ def main(args):
                 std=std
             )
         ])
+        
 
     # if random perspective attack is enabled, add the random perspective transformation
     if args.random_perspective:
@@ -204,10 +298,18 @@ def main(args):
     # Load the ImageNet-O dataset using the ImageFolder class
     dataset = ImageFolder(root=data_path, transform=transformation)
 
+    if args.worst_per_batch:
+        subset_indices = random.sample(range(len(dataset)), args.worst_per_patch_percentage *len(dataset) // 100)
+        dataset = Subset(dataset, subset_indices)
+        print("Number of images in the subset:", len(dataset))
+        
+
+
     # Define the batch size for the data loader
 
     # Create the data loader for dataset
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=args.num_workers)
+    
 
     # Load the pre-trained model
     # Set the model to evaluate mode
@@ -218,7 +320,94 @@ def main(args):
 
     # Move the model to the device
     model.to(device)
+    max_shift_x = 15
+    max_shift_y = 15
+    if  args.grid_search:
+        start= time.time()
+        if not args.worst_per_batch:
+            worst_shift_val, worst_shift_acc = worst_shift(model, dataset, device, max_x_shift=max_shift_x, max_y_shift=max_shift_y)
+            print("Worst shift:", worst_shift_val)
+            print("Worst shift accuracy:", worst_shift_acc)
+        else:
+            worst_shift_val = (None, None)
 
+        correct = 0
+        total = 0
+        with torch.no_grad():
+            for images, labels in tqdm(dataloader, total=len(dataloader)):
+                if args.worst_per_batch:
+                    batch_correct, batch_total = worst_shift_for_batch(images, labels, device, model, max_x_shift=max_shift_x, max_y_shift=max_shift_y)
+                else:
+                    batch_correct, batch_total = evaluate_shift_batch(images, labels, device, model, worst_shift_val)
+                total += batch_total
+                correct += batch_correct
+        accuracy = correct / total
+        
+        #alternative implemementation for worst_per_batch
+        # if args.worst_per_batch:
+                
+        #     per_batch_corrects = []
+        #     per_batch_totals = []
+        #     for shift_x in range(-max_shift_x, max_shift_x + 1):
+        #         for shift_y in range(-max_shift_y, max_shift_y + 1):
+        #             per_batch_correct = []
+        #             per_batch_total = []
+        #             shift = (shift_x, shift_y)
+        #             correct = 0
+        #             total = 0
+        #             with torch.no_grad():
+        #                 for images, labels in tqdm(dataloader, total=len(dataloader)):
+        #                     batch_correct, batch_total = evaluate_shift_batch(images, labels, device, model, shift)
+        #                     total += batch_total
+        #                     correct += batch_correct
+        #                     per_batch_correct.append(batch_correct)
+        #                     per_batch_total.append(batch_total)
+        #             per_batch_corrects.append(per_batch_correct)
+        #             per_batch_totals.append(per_batch_total)
+
+        #     # check that each per_batch_correct is equal in length
+        #     assert len(set([len(x) for x in per_batch_corrects])) == 1
+        #     assert len(set([len(x) for x in per_batch_totals])) == 1
+
+        #     # get the lowest correct value for each batch
+        #     per_batch_corrects = np.array(per_batch_corrects)
+        #     per_batch_totals = np.array(per_batch_totals)
+        #     per_batch_corrects = np.min(per_batch_corrects, axis=0)
+        #     per_batch_totals = np.min(per_batch_totals, axis=0)
+
+        #     # get the accuracy for each batch
+        #     correct = np.sum(per_batch_corrects)
+        #     total = np.sum(per_batch_totals)
+            
+            
+        #     accuracy = correct / total
+
+                
+                
+        
+        
+        
+        print("Worst shift accuracy on the whole dataset:", accuracy)
+        consistency = None
+        average_loss = None
+        end_time = time.time() - start
+        if args.worst_per_batch:
+            log_file = "eval_grid_results_worst_per_batch_.csv"
+        else:
+            log_file = "eval_grid_results_.csv"
+        if not os.path.isfile(log_file):
+            with open(log_file, 'w') as f:
+                writer = csv.writer(f)
+                writer.writerow(["model", "model_card", "accuracy", "consistency", "random_perspective", "random_affine", "crop", "random_erasing", "flip", "all_attack", "shift_attack", "distortion_scale", "degrees", "translate", "scale", "shear", "crop_size", "crop_padding", "average_loss", "time", "pretrained_path", "max_shift_x", "max_shift_y", "worst_shift_x", "worst_shift_y"])
+
+                
+                writer.writerow([args.model, args.model_card,  accuracy, consistency, args.random_perspective, args.random_affine, args.crop, args.random_erasing, args.flip, args.all_attack, args.shift_attack, args.distortion_scale, args.degrees, args.translate, args.scale, args.shear, args.crop_size, args.crop_padding, average_loss, end_time, args.pretrained_path.split('/')[-3], max_shift_x, max_shift_y, worst_shift_val[0], worst_shift_val[1]])
+        else:
+            with open(log_file, 'a') as f:
+                writer = csv.writer(f)
+                writer.writerow([args.model, args.model_card, accuracy, consistency, args.random_perspective, args.random_affine, args.crop, args.random_erasing, args.flip, args.all_attack, args.shift_attack, args.distortion_scale, args.degrees, args.translate, args.scale, args.shear, args.crop_size, args.crop_padding, average_loss, end_time, args.pretrained_path.split('/')[-3], max_shift_x, max_shift_y, worst_shift_val[0], worst_shift_val[1]])
+        return
+    
     # Define the criterion (loss function) to use for evaluation
     criterion = torch.nn.CrossEntropyLoss()
 
@@ -326,6 +515,7 @@ def main(args):
     print('Average Loss: {:.4f}, Accuracy: {:.4f}, Consistency {:.4f}'.format(average_loss, accuracy, consistency))
     if args.model_card:
         print("Using model card: ", args.model_card)
+    
     # append accuracy and consistency to a csv file, if no such file exists, create one, in the first row include the column names; if the file exists, append the results to the end of the file
     if args.write_csv:
         if not os.path.isfile('/home/pding/scratch.cmsc663/eval_results.csv'):
