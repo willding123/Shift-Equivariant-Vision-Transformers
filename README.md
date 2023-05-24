@@ -65,15 +65,23 @@ model_card : path to model card
 ```
 
 ```
-python eval.py --model polyvit --model_card timm/vit_base_patch16_224.augreg_in1k --data_path ~/scratch.cmsc663/val --batch_size 64 --pretrained_path /pretrained_path --ckpt_num ckpt_num --write_csv 
+python eval.py --model polyvit --model_card timm/vit_base_patch16_224.augreg_in1k --data_path ./data_path --batch_size 64 --pretrained_path ./pretrained_path --ckpt_num ckpt_num --write_csv 
 ```
 
 ## Training
 Models can be trained using train.py. config files in configs directory can be used to set training and model hyperparameters and architecture.
 
-Sample command for training Twins-poly on ImageNet dataset is:
+Sample command for training Twins_B-poly on ImageNet dataset is:
 
 ```
 torchrun --nnodes 1 --nproc_per_node 4  --master_port 41368 main.py --cfg configs/twins_svts_base.yaml --data-path ~/data_path --output ./output
 
 ```
+<!-- 
+Sample command for training ViT_S/16-poly on ImageNet dataset is:
+
+```
+torchrun --nnodes 1 --nproc_per_node 4  --master_port 41368 main.py --cfg configs/twins_svts_base.yaml --data-path ~/data_path --output ./output
+
+```
+ -->
