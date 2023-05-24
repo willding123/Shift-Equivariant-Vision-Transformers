@@ -31,7 +31,7 @@ transform = transforms.Compose([
                 std=[0.5, 0.5, 0.5]
             )
         ])
-data_path = "/home/pding/scratch.cmsc663/val/"
+data_path = "/home/user/scratch.cmsc663/val/"
 dataset = torchvision.datasets.ImageFolder(data_path, transform=transform)
 
 # Sample a subset of 10000 images from the dataset

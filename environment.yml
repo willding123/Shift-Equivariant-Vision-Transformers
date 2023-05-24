@@ -228,4 +228,4 @@ dependencies:
       - wrapt==1.15.0
       - yacs==0.1.8
       - zipp==3.15.0
-prefix: /home/pding/scratch.cmsc663/miniconda3/envs/swin
+prefix: /home/user/scratch.cmsc663/miniconda3/envs/swin

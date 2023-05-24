@@ -333,8 +333,8 @@ def main(args):
         print("Using model card: ", args.model_card)
     # append accuracy and consistency to a csv file, if no such file exists, create one, in the first row include the column names; if the file exists, append the results to the end of the file
     if args.write_csv:
-        if not os.path.isfile('/home/pding/scratch.cmsc663/eval_results.csv'):
-            with open('/home/pding/scratch.cmsc663/eval_results2.csv', 'w') as f:
+        if not os.path.isfile('/home/user/scratch.cmsc663/eval_results.csv'):
+            with open('/home/user/scratch.cmsc663/eval_results2.csv', 'w') as f:
                 writer = csv.writer(f)
                 writer.writerow(["model", "pretrained_path", "model_card", "accuracy", "consistency", "random_perspective", "random_affine", "crop", "random_erasing", "flip", "all_attack", "shift_attack", "distortion_scale", "degrees", "translate", "scale", "shear", "crop_size", "crop_padding", "average_loss", "time", "ckpt_num"])
                 if args.pretrained_path:
@@ -342,7 +342,7 @@ def main(args):
                 else:
                     writer.writerow([args.model, "None", args.model_card, accuracy, consistency, args.random_perspective, args.random_affine, args.crop, args.random_erasing, args.flip, args.all_attack, args.shift_attack, args.distortion_scale, args.degrees, args.translate, args.scale, args.shear, args.crop_size, args.crop_padding, average_loss, end_time])
         else:
-            with open('/home/pding/scratch.cmsc663/eval_results2.csv', 'a') as f:
+            with open('/home/user/scratch.cmsc663/eval_results2.csv', 'a') as f:
                 writer = csv.writer(f)
                 if args.pretrained_path:
                     writer.writerow([args.model, args.pretrained_path.split('/')[-3], args.model_card, accuracy, consistency, args.random_perspective, args.random_affine, args.crop, args.random_erasing, args.flip, args.all_attack, args.shift_attack, args.distortion_scale, args.degrees, args.translate, args.scale, args.shear, args.crop_size, args.crop_padding, average_loss, end_time ])

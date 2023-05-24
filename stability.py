@@ -69,9 +69,9 @@ def get_variances(model, images, shift_sizes, num_samples):
 config  = _C.clone()
 config.MODEL.TYPE = "vit"
 config.MODEL.CARD = model_card
-config.MODEL.PRETRAIN_PATH = "/home/pding/scratch.cmsc663/vit_s_1kscratch/default/ckpt_epoch_299.pth"
-# config.MODEL.PRETRAIN_PATH = "/home/pding/scratch.cmsc663/vit_b_1kscratch/default/ckpt_epoch_86.pth"
-# config.MODEL.PRETRAIN_PATH = "/home/pding/scratch.cmsc663/twins_svts_b_scratch/default/ckpt_epoch_270.pth"
+config.MODEL.PRETRAIN_PATH = "/home/user/scratch.cmsc663/vit_s_1kscratch/default/ckpt_epoch_299.pth"
+# config.MODEL.PRETRAIN_PATH = "/home/user/scratch.cmsc663/vit_b_1kscratch/default/ckpt_epoch_86.pth"
+# config.MODEL.PRETRAIN_PATH = "/home/user/scratch.cmsc663/twins_svts_b_scratch/default/ckpt_epoch_270.pth"
 model = build_model(config)
 ckpt  = torch.load(config.MODEL.PRETRAIN_PATH, map_location=device)
 model.load_state_dict(ckpt["model"])
@@ -86,9 +86,9 @@ torch.cuda.empty_cache()
 config  = _C.clone()
 config.MODEL.TYPE = "polyvit"
 config.MODEL.CARD = model_card
-config.MODEL.PRETRAIN_PATH = "/home/pding/scratch.cmsc663/pvit_s_1kscratch/default/ckpt_epoch_299.pth"
-# config.MODEL.PRETRAIN_PATH = "/home/pding/scratch.cmsc663/pvit_b_1kscratch/default/ckpt_epoch_185.pth"
-# config.MODEL.PRETRAIN_PATH = "/home/pding/scratch.cmsc663/ptwins_svts_b_scratch/default/ckpt_epoch_292.pth"
+config.MODEL.PRETRAIN_PATH = "/home/user/scratch.cmsc663/pvit_s_1kscratch/default/ckpt_epoch_299.pth"
+# config.MODEL.PRETRAIN_PATH = "/home/user/scratch.cmsc663/pvit_b_1kscratch/default/ckpt_epoch_185.pth"
+# config.MODEL.PRETRAIN_PATH = "/home/user/scratch.cmsc663/ptwins_svts_b_scratch/default/ckpt_epoch_292.pth"
 model1 = build_model(config)
 ckpt  = torch.load(config.MODEL.PRETRAIN_PATH, map_location=device)
 model1.load_state_dict(ckpt["model"])
