@@ -1,11 +1,3 @@
-# Swin Transformer for Image Classification
-
-This folder contains the implementation of the Swin Transformer for image classification.
-
-## Model Zoo
-
-Please refer to [MODEL HUB](MODELHUB.md#imagenet-22k-pretrained-swin-moe-models) for more pre-trained models.
-
 ## Usage
 
 ### Install
@@ -13,18 +5,12 @@ Please refer to [MODEL HUB](MODELHUB.md#imagenet-22k-pretrained-swin-moe-models)
 We recommend using the pytorch docker `nvcr>=21.05` by
 nvidia: https://catalog.ngc.nvidia.com/orgs/nvidia/containers/pytorch.
 
-- Clone this repo:
-
-```bash
-git clone https://github.com/microsoft/Swin-Transformer.git
-cd Swin-Transformer
-```
 
 - Create a conda virtual environment and activate it:
 
 ```bash
-conda create -n swin python=3.7 -y
-conda activate swin
+conda create -n poly python=3.7 -y
+conda activate poly
 ```
 
 - Install `CUDA>=10.2` with `cudnn>=7` following
@@ -35,22 +21,16 @@ conda activate swin
 conda install pytorch==1.8.0 torchvision==0.9.0 cudatoolkit=10.2 -c pytorch
 ```
 
-- Install `timm==0.4.12`:
+- Install `timm==0.8.15dev0`:
 
 ```bash
-pip install timm==0.4.12
+pip install timm==0.8.15dev0
 ```
 
 - Install other requirements:
 
 ```bash
 pip install opencv-python==4.4.0.46 termcolor==1.1.0 yacs==0.1.8 pyyaml scipy
-```
-
-- Install fused window process for acceleration, activated by passing `--fused_window_process` in the running script
-```bash
-cd kernels/window_process
-python setup.py install #--user
 ```
 
 ### Data preparation
@@ -111,35 +91,16 @@ load data:
   n01440764/n01440764_10040.JPEG	0
   n01440764/n01440764_10042.JPEG	0
   ```
-- For ImageNet-22K dataset, make a folder named `fall11_whole` and move all images to labeled sub-folders in this
-  folder. Then download the train-val split
-  file ([ILSVRC2011fall_whole_map_train.txt](https://github.com/SwinTransformer/storage/releases/download/v2.0.1/ILSVRC2011fall_whole_map_train.txt)
-  & [ILSVRC2011fall_whole_map_val.txt](https://github.com/SwinTransformer/storage/releases/download/v2.0.1/ILSVRC2011fall_whole_map_val.txt))
-  , and put them in the parent directory of `fall11_whole`. The file structure should look like:
-
-  ```bash
-    $ tree imagenet22k/
-    imagenet22k/
-    ├── ILSVRC2011fall_whole_map_train.txt
-    ├── ILSVRC2011fall_whole_map_val.txt
-    └── fall11_whole
-        ├── n00004475
-        ├── n00005787
-        ├── n00006024
-        ├── n00006484
-        └── ...
-  ```
-
 ### Evaluation
 
-To evaluate a pre-trained `Swin Transformer` on ImageNet val, run:
+To evaluate a pre-trained `Polyphase Twins` on ImageNet val, run:
 
 ```bash
 python -m torch.distributed.launch --nproc_per_node <num-of-gpus-to-use> --master_port 12345 main.py --eval \
 --cfg <config-file> --resume <checkpoint> --data-path <imagenet-path> 
 ```
 
-For example, to evaluate the `Swin-B` with a single GPU:
+For example, to evaluate the `Polyphase ViT` with a single GPU:
 
 ```bash
 python -m torch.distributed.launch --nproc_per_node 1 --master_port 12345 main.py --eval \
@@ -148,12 +109,17 @@ python -m torch.distributed.launch --nproc_per_node 1 --master_port 12345 main.p
 
 ### Training from scratch on ImageNet-1K
 
-To train a `Swin Transformer` on ImageNet from scratch, run:
+To train a `Polyphase ViT_S/16` on ImageNet from scratch, run:
 
 ```bash
 python -m torch.distributed.launch --nproc_per_node <num-of-gpus-to-use> --master_port 12345  main.py \ 
 --cfg <config-file> --data-path <imagenet-path> [--batch-size <batch-size-per-gpu> --output <output-directory> --tag <job-tag>]
 ```
+
+To train a `Polyphase ViT_B/16` on ImageNet from scratch, run:
+
+
+To train a `Polyphase Twins_B` on ImageNet from scratch, run:
 
 **Notes**:
 
