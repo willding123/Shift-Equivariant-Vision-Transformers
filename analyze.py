@@ -20,8 +20,8 @@ waitlist = []
 # directory where the log_rank files are located
 # dir_path = "/fs/nexus-scratch/pding/output/swin_tiny_patch4_window7_1k_default/default"
 # dir_path = "/fs/nexus-projects/shift-equivariant_vision_transformer/poly_swin_tiny_0215/default"
-dir_path = "/home/pding/scratch.cmsc663/pvit_small_423_w/default"
-# dir_path = "/scratch/zt1/project/furongh-prj/shared/pvit_base_416_w/default"
+dir_path = "/home/pding/scratch.cmsc663/ptwins_svts_b_scratch/default"
+# dir_path = "/scratch/zt1/project/furongh-prj/shared/pvit_b_1kscratch/default"
 i = 0
 # iterate through the files in the directory
 for file_name in os.listdir(dir_path):
@@ -49,10 +49,10 @@ def power_law(x, a, b, c):
 
 # fit the data using curve_fit
 from scipy.optimize import curve_fit
-if len(acc_ls) < 100: 
-    popt, pcov = curve_fit(power_law, range(1, len(acc_ls)+1), acc_ls, maxfev=15000)
+if len(acc_ls) < 50: 
+    popt, pcov = curve_fit(power_law, range(1, len(acc_ls)+1), acc_ls, maxfev=5000)
 else:
-    popt, pcov = curve_fit(power_law, range(51, len(acc_ls)+1), acc_ls[50:], maxfev=15000)
+    popt, pcov = curve_fit(power_law, range(51, len(acc_ls)+1), acc_ls[50:], maxfev=10000)
 
 # plot the data and the fitted function
 step = 1

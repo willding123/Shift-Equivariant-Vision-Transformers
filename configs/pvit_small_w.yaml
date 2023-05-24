@@ -2,27 +2,41 @@ MODEL:
   TYPE: polyvit
   NAME: pvit_small_428_w
   PRETRAINED: True
+  # CARD: "vit_small_patch16_224"
+  DROP_RATE: 0.1
   CARD: "timm/vit_small_patch16_224.augreg_in1k"
 
 DATA:
   BATCH_SIZE: 256
-  NUM_WORKERS: 16
-  MEAN: [0.5, 0.5, 0.5]
-  STD: [0.5, 0.5, 0.5]
-
+#   # BATCH_SIZE: 512
+#   NUM_WORKERS: 16
+#   MEAN: [0.5, 0.5, 0.5]
+#   STD: [0.5, 0.5, 0.5]
 
 TRAIN: 
-  WARMUP_EPOCHS: 0
-  WARMUP_LR: 1e-4
-  BASE_LR: 1e-4
-  MIN_LR: 1e-4
-  WEIGHT_DECAY: 0.01
-  EPOCHS: 100
+  # WARMUP_EPOCHS: 0
+  # WARMUP_LR: 3e-4
+  # BASE_LR: 3e-4
+  # MIN_LR: 3e-4
+  # WEIGHT_DECAY: 0.001
+  EPOCHS: 400
+
   
-AUG:
-  AUTO_AUGMENT: '3a'
+# AUG:
+#   AUTO_AUGMENT: 'rand-m30-n3-mstd0.5-inc1'
+
+# AUG:
+#   AUTO_AUGMENT: '3a'
+  
 
 
+# TRAIN: 
+#   WARMUP_EPOCHS: 0
+#   WARMUP_LR: 1e-4
+#   BASE_LR: 1e-4
+#   MIN_LR: 1e-4
+#   WEIGHT_DECAY: 0.001
+#   EPOCHS: 100
 
 # TRAIN: 
 #   WARMUP_EPOCHS: 0

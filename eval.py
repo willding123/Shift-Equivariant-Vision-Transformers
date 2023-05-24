@@ -38,7 +38,7 @@ def parse_args():
     parser.add_argument('--shift_attack', action="store_true", required=False, help='whether enable shift attack')
     parser.add_argument('--shift_size', type=int, default = 15, required=False, metavar="FILE", help='shift size')
     parser.add_argument('--batch_size', type=int, default = 128, required=False, metavar="FILE", help='batch size')
-    parser.add_argument('--num_workers', type=int, default = 16, required=False, metavar="FILE", help='number of workers')
+    parser.add_argument('--num_workers', type=int, default = 8, required=False, metavar="FILE", help='number of workers')
     parser.add_argument ("--pretrained_path", type=str, default = None, required=False, metavar="FILE", help="pretrained model path")
     parser.add_argument("--affine", type=bool, default = False, required=False, metavar="FILE", help="whether enable affine attack")
     parser.add_argument("--breaking", action="store_true", required=False, help="break the loop if there are enough inconsistent predictions")
@@ -63,56 +63,51 @@ def parse_args():
     parser.add_argument("--all_attack", action="store_true", required=False, help="whether enable all attacks")
     parser.add_argument("--write_csv", action="store_true", required=False, help="whether write csv file")
     parser.add_argument("--ckpt_num", type=int, default = 0, required=False, metavar="FILE", help='ckpt num')
+    parser.add_argument("--pretrained", action="store_true", required=False, help="whether use pretrained model")
     args, unparsed = parser.parse_known_args()
     return args
 
 def main(args):
+    torch.cuda.set_device(0)
     batch_size = args.batch_size
     if args.shift_attack:
         shift_size = args.shift_size
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     data_path = args.data_path
     IN_default_mean = True
-    # if data path contains imagenet-o, use mean = [0.485, 0.456, 0.406] std = [0.229, 0.224, 0.225]
-    if "imagenet-o" in data_path:
-        mean = [0.485, 0.456, 0.406]
-        std =  [0.229, 0.224, 0.225]
-    else: 
-        mean = [0.5, 0.5, 0.5]
-        std = [0.5, 0.5, 0.5]
-
     
     if args.model == "vit":
         if args.model_card:
-            model = timm.create_model(args.model_card, pretrained=True)
+            model = timm.create_model(args.model_card, pretrained=args.pretrained)
         else:
-            model = timm.create_model("hf_hub:timm/vit_base_patch16_224.augreg_in21k_ft_in1k", pretrained=True)
+            model = timm.create_model("hf_hub:timm/vit_base_patch16_224.augreg_in21k_ft_in1k", pretrained=args.pretrained)
         IN_default_mean = False
     elif args.model == "vit_relpos":
         if args.model_card:
-            model = timm.create_model(args.model_card, pretrained=True)
+            model = timm.create_model(args.model_card, pretrained=args.pretrained)
         else:
-            model = timm.create_model("hf_hub:timm/vit_relpos_small_patch16_224.sw_in1k", pretrained=True)
+            model = timm.create_model("hf_hub:timm/vit_relpos_small_patch16_224.sw_in1k", pretrained=args.pretrained)
         IN_default_mean = False
     elif args.model == "polyvit":
         if args.model_card:
-            model = PolyViT(args.model_card, pretrained=True)
+            model = PolyViT(args.model_card, pretrained=args.pretrained)
         else:
-            model = PolyViT("hf_hub:timm/vit_base_patch16_224.augreg_in21k_ft_in1k", pretrained=True)
+            model = PolyViT("hf_hub:timm/vit_base_patch16_224.augreg_in21k_ft_in1k", pretrained=args.pretrained)
         IN_default_mean = False
     elif args.model == "twins":
         if args.model_card:
-            model = timm.create_model(args.model_card, pretrained=True)
+            model = timm.create_model(args.model_card, pretrained=args.pretrained)
         else:
-            model = timm.create_model("twins_svt_small", pretrained=True)
+            model = timm.create_model("twins_svt_small", pretrained=args.pretrained)
     elif args.model == "polytwins":
         if args.model_card:
-            model = PolyTwins(args.model_card, pretrained=True)
+            model = PolyTwins(args.model_card, pretrained=args.pretrained)
         else: 
-            model = PolyTwins("twins_svt_small", pretrained=True)
+            model = PolyTwins("twins_svt_small", pretrained=args.pretrained)
     else: 
         raise NotImplementedError
     
+   
     if args.pretrained_path:
         config  = _C.clone()
         config.MODEL.TYPE = args.model
@@ -133,7 +128,17 @@ def main(args):
         except:
             raise NotImplementedError
 
+    # if data path contains imagenet-o, use mean = [0.485, 0.456, 0.406] std = [0.229, 0.224, 0.225]
+    if "imagenet-o" in data_path:
+        mean = [0.485, 0.456, 0.406]
+        std =  [0.229, 0.224, 0.225]
+        model.head.out_features = 200
+    else: 
+        mean = [0.5, 0.5, 0.5]
+        std = [0.5, 0.5, 0.5]
+
     model = model.to(device)
+
 
     if IN_default_mean:
         # Define the transforms to be applied to the input images
@@ -329,15 +334,15 @@ def main(args):
     # append accuracy and consistency to a csv file, if no such file exists, create one, in the first row include the column names; if the file exists, append the results to the end of the file
     if args.write_csv:
         if not os.path.isfile('/home/pding/scratch.cmsc663/eval_results.csv'):
-            with open('/home/pding/scratch.cmsc663/eval_results.csv', 'w') as f:
+            with open('/home/pding/scratch.cmsc663/eval_results2.csv', 'w') as f:
                 writer = csv.writer(f)
-                writer.writerow(["model", "pretrained_path", "model_card", "accuracy", "consistency", "random_perspective", "random_affine", "crop", "random_erasing", "flip", "all_attack", "shift_attack", "distortion_scale", "degrees", "translate", "scale", "shear", "crop_size", "crop_padding", "average_loss", "time"])
+                writer.writerow(["model", "pretrained_path", "model_card", "accuracy", "consistency", "random_perspective", "random_affine", "crop", "random_erasing", "flip", "all_attack", "shift_attack", "distortion_scale", "degrees", "translate", "scale", "shear", "crop_size", "crop_padding", "average_loss", "time", "ckpt_num"])
                 if args.pretrained_path:
-                    writer.writerow([args.model, args.pretrained_path.split('/')[-3], args.model_card,  accuracy, consistency, args.random_perspective, args.random_affine, args.crop, args.random_erasing, args.flip, args.all_attack, args.shift_attack, args.distortion_scale, args.degrees, args.translate, args.scale, args.shear, args.crop_size, args.crop_padding, average_loss, end_time ])
+                    writer.writerow([args.model, args.pretrained_path.split('/')[-3], args.model_card,  accuracy, consistency, args.random_perspective, args.random_affine, args.crop, args.random_erasing, args.flip, args.all_attack, args.shift_attack, args.distortion_scale, args.degrees, args.translate, args.scale, args.shear, args.crop_size, args.crop_padding, average_loss, end_time, args.ckpt_num ])
                 else:
                     writer.writerow([args.model, "None", args.model_card, accuracy, consistency, args.random_perspective, args.random_affine, args.crop, args.random_erasing, args.flip, args.all_attack, args.shift_attack, args.distortion_scale, args.degrees, args.translate, args.scale, args.shear, args.crop_size, args.crop_padding, average_loss, end_time])
         else:
-            with open('/home/pding/scratch.cmsc663/eval_results.csv', 'a') as f:
+            with open('/home/pding/scratch.cmsc663/eval_results2.csv', 'a') as f:
                 writer = csv.writer(f)
                 if args.pretrained_path:
                     writer.writerow([args.model, args.pretrained_path.split('/')[-3], args.model_card, accuracy, consistency, args.random_perspective, args.random_affine, args.crop, args.random_erasing, args.flip, args.all_attack, args.shift_attack, args.distortion_scale, args.degrees, args.translate, args.scale, args.shear, args.crop_size, args.crop_padding, average_loss, end_time ])
