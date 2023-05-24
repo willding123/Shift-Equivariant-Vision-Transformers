@@ -51,7 +51,7 @@ PolyPatch and PolyOrder from models/poly_utils.py can be used as plug-and-play  
 
 Integration of them in common ViT - polyVIT and Twin - PolyTwins architectures can be found in models/vision_transformer.py and models/polytwins.py respectively.
 
-## validation
+## Validation
 
 Pre-trained weights can be supplied to eval.py to evaluate the performance, consistency, and robustness of the models. You can download our pretrained model checkpoints from [this Google Drive folder]( https://drive.google.com/drive/folders/193u1uxb-pWS-JeeqbG1T0MZDVXSVVqfp?usp=share_link).
 
