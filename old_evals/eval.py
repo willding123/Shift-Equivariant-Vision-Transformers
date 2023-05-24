@@ -76,7 +76,6 @@ def parse_args():
     parser.add_argument("--worst_per_patch_percentage", type=int, default = 10, required=False, metavar="FILE", help='what percentage of patches to use for worst per patch attack')
     parser.add_argument("--write_csv", action="store_true", required=False, help="whether write csv file")
     parser.add_argument("--ckpt_num", type=int, default = 0, required=False, metavar="FILE", help='ckpt num')
-    parser.add_argument("--grid_search_max_shift", type=int, default = 15, metavar="FILE", help='max shift for grid search')
     args, unparsed = parser.parse_known_args()
     return args
 
@@ -322,8 +321,8 @@ def main(args):
 
     # Move the model to the device
     model.to(device)
-    max_shift_x =  args.grid_search_max_shift
-    max_shift_y =  args.grid_search_max_shift
+    max_shift_x = 15
+    max_shift_y = 15
     if  args.grid_search:
         start= time.time()
         if not args.worst_per_batch:
@@ -394,9 +393,9 @@ def main(args):
         average_loss = None
         end_time = time.time() - start
         if args.worst_per_batch:
-            log_file = "eval_grid_results_worst_per_batch_100.csv"
+            log_file = "eval_grid_results_worst_per_batch_final.csv"
         else:
-            log_file = "eval_grid_results_100.csv"
+            log_file = "eval_grid_results_final.csv"
         if not os.path.isfile(log_file):
             with open(log_file, 'w') as f:
                 writer = csv.writer(f)
