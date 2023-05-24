@@ -54,14 +54,20 @@ Integration of them in common ViT - polyVIT and Twin - PolyTwins architectures c
 
 ## validation
 
-Pre-trained weights can be supplied to eval.py to evaluate the performance, consistency, and robustness of the models.
+Pre-trained weights can be supplied to eval.py to evaluate the performance, consistency, and robustness of the models. You can download our pretrained model checkpoints from [this Google Drive folder]( https://drive.google.com/drive/folders/193u1uxb-pWS-JeeqbG1T0MZDVXSVVqfp?usp=share_link).
 
 Some common arguments are:
 
 ```
-model : model name
+model : model name [vit, polyvit, twins, polytwins]
 data-path : path to dataset
-model_card : path to model card
+model_card : model card from timm 
+pretrained_path : path to the pretrained checkpoints folder 
+ckpt_num: which checkpoint to use in the pretrained checkpoints folder 
+write_csv: whether output a csv file
+random_affine: evaluate images under random affine transformation 
+crop: evaluate images under cropping
+flip: evaluate images under flipping
 ```
 
 ```
@@ -74,14 +80,14 @@ Models can be trained using train.py. config files in configs directory can be u
 Sample command for training Twins_B-poly on ImageNet dataset is:
 
 ```
-torchrun --nnodes 1 --nproc_per_node 4  --master_port 41368 main.py --cfg configs/twins_svts_base.yaml --data-path ~/data_path --output ./output
+torchrun --nnodes 1 --nproc_per_node 4  --master_port 41368 main.py --cfg configs/ptwins_svts_base.yaml --data-path ~/data_path --output ./output
 
 ```
 <!-- 
 Sample command for training ViT_S/16-poly on ImageNet dataset is:
 
 ```
-torchrun --nnodes 1 --nproc_per_node 4  --master_port 41368 main.py --cfg configs/twins_svts_base.yaml --data-path ~/data_path --output ./output
+torchrun --nnodes 1 --nproc_per_node 4  --master_port 41368 main.py --cfg configs/pvit_small.yaml --data-path ~/data_path --output ./output
 
 ```
  -->
