@@ -58,10 +58,10 @@ Pre-trained weights can be supplied to eval.py to evaluate the performance, cons
 Some common arguments are:
 
 ```
-model : model name [vit, polyvit, twins, polytwins]
-data-path : path to dataset
-model_card : model card from timm 
-pretrained_path : path to the pretrained checkpoints folder 
+model: model name [vit, polyvit, twins, polytwins]
+data-path: path to dataset
+model_card: model card from timm 
+pretrained_path: path to the pretrained checkpoints folder 
 ckpt_num: which checkpoint to use in the pretrained checkpoints folder 
 write_csv: whether output a csv file
 random_affine: evaluate images under random affine transformation 
