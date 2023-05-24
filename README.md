@@ -74,7 +74,7 @@ python eval.py --model polyvit --model_card timm/vit_base_patch16_224.augreg_in1
 ```
 
 ## Training
-Models can be trained using train.py. config files in configs directory can be used to set training and model hyperparameters and architecture.
+Models can be trained using train.py, config files in configs directory can be used to set training and model hyperparameters and architecture.
 
 Sample command for training Twins_B-poly on ImageNet dataset is:
 
