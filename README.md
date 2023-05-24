@@ -1,7 +1,6 @@
 # Reviving Shift Equivariance in Vision Transformers
 <!-- The latest version of this repo can be found at  -->
 
-Code based on Swin Transformer [repo](https://github.com/microsoft/Swin-Transformer). 
 <!-- Updated Swin transformer (with polyphase implementations) is in models/swin_transformer_poly.py. -->
 
 ## Introduction
@@ -91,3 +90,7 @@ torchrun --nnodes 1 --nproc_per_node 4  --master_port 41368 main.py --cfg config
 
 ```
  -->
+ 
+ ## Repository Reference 
+ Code based on Swin Transformer [repo](https://github.com/microsoft/Swin-Transformer). 
+
