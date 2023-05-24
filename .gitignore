@@ -162,3 +162,5 @@ settings.json
 
 # Ignore zzz.py
 zzz.py
+old_evals/eval_grid_results_worst_per_batch.csv
+*.csv
