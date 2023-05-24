@@ -6,7 +6,7 @@ Code based on Swin Transformer [repo](https://github.com/microsoft/Swin-Transfor
 
 ## Introduction
 
-This is the official implementation of Shift Equivariant Vision Transformers which proposes an adaptive polyphase anchoring algorithm that can be seamlessly integrated into vision transformer models to ensure shift-equivariance in patch embedding and subsampled attention modules, such as window attention and global subsampled attention. Our algorithms enable ViT, and its variants such as Twins to achieve 100% consistency with respect to input shift.
+This is the official implementation of Reviving Shift Equivariance in Vision Transformers which proposes an adaptive polyphase anchoring algorithm that can be seamlessly integrated into vision transformer models to ensure shift-equivariance in patch embedding and subsampled attention modules, such as window attention and global subsampled attention. Our algorithms enable ViT, and its variants such as Twins to achieve 100% consistency with respect to input shift.
 
 <!-- include image local path imgs/PolyModels.png -->
 
